@@ -1,0 +1,25 @@
+name: Flutter Analyze
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run static analysis
+        run: flutter analyze

@@ -1,0 +1,30 @@
+name: Issue Reference Checker
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  check-issue-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR contains issue reference
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if echo "$PR_BODY" | grep -qiE '(Closes|Fixes|Resolves)\s+#[0-9]+'; then
+            echo "Issue reference found."
+            exit 0
+          fi
+
+          echo "Pull request description must include an issue reference."
+          echo "Add one of the following to your PR description:"
+          echo "  Closes #ISSUE_NUMBER"
+          echo "  Fixes #ISSUE_NUMBER"
+          echo "  Resolves #ISSUE_NUMBER"
+          echo "Example: Closes #12"
+          exit 1

@@ -1,0 +1,19 @@
+name: PR Target Guard
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  check-target-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR targets develop
+        if: github.event.pull_request.base.ref != 'develop'
+        run: |
+          echo "Pull requests must target develop branch. Direct PRs to main are not allowed."
+          exit 1

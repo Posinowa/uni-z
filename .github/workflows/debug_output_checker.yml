@@ -1,0 +1,39 @@
+name: Debug Output Checker
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  check-debug-output:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan lib/ for debug statements
+        run: |
+          FOUND=0
+
+          if grep -rn --include="*.dart" 'print(' lib/; then
+            echo "Forbidden debug output found: print("
+            FOUND=1
+          fi
+
+          if grep -rn --include="*.dart" 'debugPrint(' lib/; then
+            echo "Forbidden debug output found: debugPrint("
+            FOUND=1
+          fi
+
+          if grep -rn --include="*.dart" 'developer.log(' lib/; then
+            echo "Forbidden debug output found: developer.log("
+            FOUND=1
+          fi
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo "Remove debug output from lib/ before opening a PR."
+            exit 1
+          fi

@@ -1,0 +1,48 @@
+name: Forbidden Files Checker
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  check-forbidden-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan PR for forbidden files
+        run: |
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed files found."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            if [ "$file" = ".env.example" ]; then
+              continue
+            fi
+
+            case "$file" in
+              .env|.env.local|.env.production|.env.development|firebase-service-account.json|serviceAccountKey.json)
+                echo "Forbidden file detected: $file"
+                exit 1
+                ;;
+            esac
+
+            case "$file" in
+              *.pem|*.key|*.p12)
+                echo "Forbidden file detected: $file"
+                exit 1
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"

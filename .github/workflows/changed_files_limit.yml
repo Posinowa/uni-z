@@ -1,0 +1,27 @@
+name: Changed Files Limit
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  check-changed-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count changed files
+        run: |
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | wc -l | tr -d ' ')
+          echo "Changed files: $CHANGED_FILES"
+
+          if [ "$CHANGED_FILES" -gt 15 ]; then
+            echo "This PR changes too many files. Please split the work into smaller PRs."
+            exit 1
+          fi
