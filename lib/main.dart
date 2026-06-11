@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/routing/app_router.dart';
 import 'core/routing/app_routes.dart';
@@ -8,6 +9,9 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Çevre değişkenlerini yükle — .env dosyası yoksa uygulama başlamamalı
+  await dotenv.load(fileName: '.env');
 
   // Firebase başlat — initialize olmadan uygulama başlamamalı
   await Firebase.initializeApp(

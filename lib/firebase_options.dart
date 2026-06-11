@@ -1,11 +1,17 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Firebase yapılandırma seçenekleri.
 ///
-/// Bu dosya `flutterfire configure` komutuyla yeniden üretilebilir.
-/// Detay: https://firebase.google.com/docs/flutter/setup
+/// Bu dosya çevre değişkenlerini `.env` dosyasından okur.
+/// Gerçek API anahtarları **asla** bu dosyada tutulmaz.
+///
+/// Kurulum:
+///   1. `.env.example` dosyasını `.env` olarak kopyalayın.
+///   2. Firebase konsolundan aldığınız değerleri doldurun.
+///   3. `.env` dosyasını asla commit etmeyin.
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -26,22 +32,22 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Android yapılandırması — google-services.json'dan alınmıştır
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAu94Yd_NHUaOmceS_mgLmF4fuFg_1JdLg',
-    appId: '1:512578633026:android:b386c2e08cfae54c22dcdb',
-    messagingSenderId: '512578633026',
-    projectId: 'uniz-mobile',
-    storageBucket: 'uniz-mobile.firebasestorage.app',
+  // Android yapılandırması — .env dosyasından okunur
+  static FirebaseOptions get android => FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY']!,
+    appId: dotenv.env['FIREBASE_ANDROID_APP_ID']!,
+    messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['FIREBASE_PROJECT_ID']!,
+    storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET']!,
   );
 
-  // iOS yapılandırması — GoogleService-Info.plist'ten alınmıştır
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA41Q1Wf5sEyaF7MoZmwzznFXW7Ox84vPE',
-    appId: '1:512578633026:ios:cdaaf5762f64eed122dcdb',
-    messagingSenderId: '512578633026',
-    projectId: 'uniz-mobile',
-    storageBucket: 'uniz-mobile.firebasestorage.app',
-    iosBundleId: 'com.posinowa.uniz.unizMobile',
+  // iOS yapılandırması — .env dosyasından okunur
+  static FirebaseOptions get ios => FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_IOS_API_KEY']!,
+    appId: dotenv.env['FIREBASE_IOS_APP_ID']!,
+    messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['FIREBASE_PROJECT_ID']!,
+    storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET']!,
+    iosBundleId: dotenv.env['FIREBASE_IOS_BUNDLE_ID']!,
   );
 }
