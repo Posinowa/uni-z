@@ -10,8 +10,12 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Çevre değişkenlerini yükle — .env dosyası yoksa uygulama başlamamalı
-  await dotenv.load(fileName: '.env');
+  // Çevre değişkenlerini yükle — .env yoksa .env.example'a fallback yap
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    await dotenv.load(fileName: '.env.example');
+  }
 
   // Firebase başlat — initialize olmadan uygulama başlamamalı
   await Firebase.initializeApp(
