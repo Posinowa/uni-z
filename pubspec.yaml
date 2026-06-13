@@ -51,8 +51,9 @@ dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  # package. See that file for information about deactivating additional lint
+  # rules. See the following page for details:
+  # https://dart.dev/guides/language/analysis-options
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -69,7 +70,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env.example
-    - .env
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
