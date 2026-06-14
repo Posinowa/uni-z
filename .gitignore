@@ -54,3 +54,7 @@ serviceAccountKey.json
 *.pem
 *.key
 *.p12
+
+# Firebase config (secret — her geliştirici kendi dosyasını koyar)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
