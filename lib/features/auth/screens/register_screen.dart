@@ -3,6 +3,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/utils/validators.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/buttons/text_action_button.dart';
 import '../../../shared/widgets/inputs/app_password_field.dart';
@@ -93,12 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.name,
                       textInputAction: TextInputAction.next,
                       prefixIcon: Icons.person_outline,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Ad soyad gerekli';
-                        }
-                        return null;
-                      },
+                      validator: Validators.fullName,
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
@@ -110,12 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       prefixIcon: Icons.email_outlined,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'E-posta adresi gerekli';
-                        }
-                        return null;
-                      },
+                      validator: Validators.email,
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
@@ -126,15 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _passwordController,
                       textInputAction: TextInputAction.next,
                       prefixIcon: Icons.lock_outline,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Şifre gerekli';
-                        }
-                        if (value.length < 6) {
-                          return 'Şifre en az 6 karakter olmalı';
-                        }
-                        return null;
-                      },
+                      validator: Validators.password,
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
@@ -145,15 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _confirmPasswordController,
                       textInputAction: TextInputAction.done,
                       prefixIcon: Icons.lock_outline,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Şifre tekrar gerekli';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Şifreler eşleşmiyor';
-                        }
-                        return null;
-                      },
+                      validator: (value) => Validators.confirmPassword(
+                        value,
+                        _passwordController.text,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
