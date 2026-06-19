@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../features/auth/screens/login_screen.dart';
 import 'app_routes.dart';
 
 /// Uygulamanın route yapılandırması.
@@ -28,7 +30,7 @@ class AppRouter {
       case AppRoutes.login:
         return _buildRoute(
           settings,
-          const _PlaceholderScreen(title: 'Login'),
+          const LoginScreen(),
         );
 
       case AppRoutes.register:
