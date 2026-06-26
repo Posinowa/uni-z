@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routing/app_routes.dart';
@@ -8,13 +10,14 @@ import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/buttons/text_action_button.dart';
 import '../../../shared/widgets/inputs/app_password_field.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../providers/auth_provider.dart';
 
 /// Kullanıcı giriş ekranı.
 ///
 /// E-posta ve şifre ile giriş yapılmasını sağlar.
 /// Şifremi unuttum ve kayıt ol yönlendirme linkleri içerir.
 ///
-/// Firebase login bu ekranda yapılmaz — sadece UI katmanıdır.
+/// Login işlemi [AuthProvider] üzerinden yapılır — UI direkt Firebase'e erişmez.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -35,9 +38,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// Giriş yap butonuna basıldığında çalışır.
-  void _onLoginPressed() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Firebase Auth entegrasyonu yapılacak.
+  Future<void> _onLoginPressed() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final authProvider = context.read<AuthProvider>();
+
+    await authProvider.signIn(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    // Widget hâlâ ekrandaysa sonucu kontrol et
+    if (!mounted) return;
+
+    if (authProvider.errorMessage != null) {
+      // Hata varsa snackbar göster
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      authProvider.clearError();
+    } else if (authProvider.isLoggedIn) {
+      // Başarılı giriş — geçici olarak /home'a yönlendir.
+      // Profil tamamlama kontrolü ilerideki issue'da eklenecek.
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.home,
+        (route) => false,
+      );
     }
   }
 
@@ -53,6 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // AuthProvider'ın isLoading state'ini dinle
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -122,7 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ── Giriş Yap Butonu ──
                     PrimaryButton(
                       text: 'Giriş Yap',
-                      onPressed: _onLoginPressed,
+                      onPressed: isLoading ? null : _onLoginPressed,
+                      isLoading: isLoading,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
 
