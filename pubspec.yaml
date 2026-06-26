@@ -41,6 +41,9 @@ dependencies:
   cloud_firestore: ^6.5.0
   firebase_messaging: ^16.3.0
 
+  # State management
+  provider: ^6.1.2
+
   # Environment configuration
   flutter_dotenv: ^5.2.1
 
