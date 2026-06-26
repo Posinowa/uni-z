@@ -68,14 +68,26 @@ class AuthProvider extends ChangeNotifier {
 
   /// Email ve şifre ile yeni hesap oluşturur.
   ///
+  /// Kayıt başarılı olduktan sonra Firebase Auth profilinde
+  /// [fullName] ile displayName güncellenir.
+  ///
   /// Başarılıysa [currentUser] güncellenir.
   /// Hata olursa [errorMessage] set edilir.
-  Future<void> register(String email, String password) async {
+  Future<void> register(
+    String fullName,
+    String email,
+    String password,
+  ) async {
     _setLoading(true);
     _clearError();
 
     try {
       await _authService.registerWithEmailAndPassword(email, password);
+
+      // Kayıt başarılı — displayName güncelle
+      await _authService.currentUser?.updateDisplayName(fullName);
+      await _authService.currentUser?.reload();
+      _currentUser = _authService.currentUser;
     } on FirebaseAuthException catch (e) {
       _setError(_mapFirebaseError(e.code));
     } catch (e) {

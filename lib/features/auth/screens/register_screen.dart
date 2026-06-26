@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routing/app_routes.dart';
@@ -8,6 +10,7 @@ import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/buttons/text_action_button.dart';
 import '../../../shared/widgets/inputs/app_password_field.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../providers/auth_provider.dart';
 
 /// Kullanıcı kayıt ekranı.
 ///
@@ -15,7 +18,7 @@ import '../../../shared/widgets/inputs/app_text_field.dart';
 /// Kayıt ol butonu, giriş yap yönlendirme linki ve
 /// kullanım şartları kısa metni bulunur.
 ///
-/// Firebase kayıt bu ekranda yapılmaz — sadece UI katmanıdır.
+/// Kayıt işlemi [AuthProvider] üzerinden yapılır — UI direkt Firebase'e erişmez.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -40,9 +43,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   /// Kayıt ol butonuna basıldığında çalışır.
-  void _onRegisterPressed() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Firebase Auth entegrasyonu yapılacak.
+  Future<void> _onRegisterPressed() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final authProvider = context.read<AuthProvider>();
+
+    await authProvider.register(
+      _fullNameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    // Widget hâlâ ekrandaysa sonucu kontrol et
+    if (!mounted) return;
+
+    if (authProvider.errorMessage != null) {
+      // Hata varsa snackbar göster
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      authProvider.clearError();
+    } else if (authProvider.isLoggedIn) {
+      // Başarılı kayıt — profil tamamlama ekranına yönlendir
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.profileCompletion,
+        (route) => false,
+      );
     }
   }
 
@@ -53,6 +83,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // AuthProvider'ın isLoading state'ini dinle
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -147,7 +180,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // ── Kayıt Ol Butonu ──
                     PrimaryButton(
                       text: 'Kayıt Ol',
-                      onPressed: _onRegisterPressed,
+                      onPressed: isLoading ? null : _onRegisterPressed,
+                      isLoading: isLoading,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
 
