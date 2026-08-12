@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/splash_screen.dart';
 import 'app_routes.dart';
 
 /// Uygulamanın route yapılandırması.
@@ -24,7 +26,7 @@ class AppRouter {
       case AppRoutes.splash:
         return _buildRoute(
           settings,
-          const _PlaceholderScreen(title: 'Splash'),
+          const SplashScreen(),
         );
 
       case AppRoutes.login:
@@ -42,7 +44,7 @@ class AppRouter {
       case AppRoutes.forgotPassword:
         return _buildRoute(
           settings,
-          const _PlaceholderScreen(title: 'Forgot Password'),
+          const ForgotPasswordScreen(),
         );
 
       case AppRoutes.profileCompletion:
