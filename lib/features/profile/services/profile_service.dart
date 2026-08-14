@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/services/firestore_service.dart';
 import '../models/user_profile.dart';
@@ -12,11 +10,7 @@ class ProfileService extends FirestoreService {
   /// [ProfileService] oluşturur.
   ///
   /// Testlerde sahte/mock instance verebilmek için opsiyonel [firestoreInstance] kabul eder.
-  ProfileService({FirebaseFirestore? firestoreInstance})
-      : super(
-          FirestoreCollections.users,
-          firestoreInstance: firestoreInstance,
-        );
+  ProfileService({super.firestoreInstance}) : super(FirestoreCollections.users);
 
   /// Yeni kullanıcı profilini Firestore `users` koleksiyonuna kaydeder.
   ///
