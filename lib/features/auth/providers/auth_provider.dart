@@ -133,6 +133,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Kullanıcı oturumunu kapatır.
+  ///
+  /// UI katmanından [AuthProvider.logout] çağrısı için kullanılır.
+  /// Hata olursa [errorMessage] set edilir.
+  Future<void> logout() async {
+    await signOut();
+  }
+
   /// Hata mesajını temizler.
   ///
   /// UI'dan hata gösterildikten sonra çağrılabilir.
