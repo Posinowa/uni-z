@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routing/app_routes.dart';
@@ -7,13 +9,14 @@ import '../../../shared/utils/validators.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/buttons/text_action_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../providers/auth_provider.dart';
 
 /// Şifre sıfırlama ekranı.
 ///
 /// Kullanıcı e-posta adresini girerek şifre sıfırlama
 /// bağlantısı talep edebilir. Login ekranına dönüş linki içerir.
 ///
-/// Firebase password reset bu ekranda yapılmaz — sadece UI katmanıdır.
+/// Şifre sıfırlama işlemi [AuthProvider] üzerinden gerçekleştirilir.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -32,9 +35,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   /// Şifre sıfırlama bağlantısı gönder butonuna basıldığında çalışır.
-  void _onResetPasswordPressed() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Firebase Auth password reset entegrasyonu yapılacak.
+  Future<void> _onResetPasswordPressed() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final authProvider = context.read<AuthProvider>();
+
+    await authProvider.sendPasswordReset(_emailController.text.trim());
+
+    if (!mounted) return;
+
+    if (authProvider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      authProvider.clearError();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
     }
   }
 
@@ -45,6 +71,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -97,6 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     PrimaryButton(
                       text: 'Sıfırlama Bağlantısı Gönder',
                       onPressed: _onResetPasswordPressed,
+                      isLoading: isLoading,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
 
