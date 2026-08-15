@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_dropdown_field.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../widgets/department_input_field.dart';
 import '../widgets/profile_form_section.dart';
 
 /// Kayıt sonrası profil tamamlama ekranı.
@@ -35,27 +36,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
   /// Seçilen üniversite — id ve name içerir.
   UniversityEntry? _selectedUniversity;
-  String? _selectedDepartment;
+  /// Seçilen veya manuel girilen bölüm adı.
+  String? _departmentName;
   int? _selectedClassYear;
   int? _selectedGraduationYear;
-
-  // Mock bölüm listesi (Firestore entegrasyonu kapsam dışı)
-  static const List<String> _departments = [
-    'Bilgisayar Mühendisliği',
-    'Yazılım Mühendisliği',
-    'Elektrik-Elektronik Mühendisliği',
-    'Makine Mühendisliği',
-    'Endüstri Mühendisliği',
-    'İnşaat Mühendisliği',
-    'İşletme',
-    'İktisat',
-    'Hukuk',
-    'Tıp',
-    'Psikoloji',
-    'Matematik',
-    'Fizik',
-    'Kimya',
-  ];
 
   // Sınıf seçenekleri: 1–6
   static const List<int> _classYears = [1, 2, 3, 4, 5, 6];
@@ -77,8 +61,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   void _onSavePressed() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // Firestore kaydı bu aşamada kapsam dışı.
+    // _departmentName burada hazır; Firestore kaydı kapsam dışı.
     // Başarılı validasyon sonrası snackbar gösterilir.
+    final _ = _departmentName;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Profil bilgileri kaydedildi.'),
@@ -166,26 +151,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Bölüm
-                  AppDropdownField<String>(
-                    label: 'Bölüm',
-                    hint: 'Bölümünüzü seçin',
-                    value: _selectedDepartment,
-                    prefixIcon: Icons.menu_book_outlined,
-                    items: _departments
-                        .map(
-                          (dept) => DropdownMenuItem(
-                            value: dept,
-                            child: Text(dept),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        setState(() => _selectedDepartment = value),
-                    validator: (value) {
-                      if (value == null) return 'Bölüm seçimi zorunludur';
-                      return null;
-                    },
+                  // Bölüm — dropdown veya manuel giriş
+                  DepartmentInputField(
+                    onDepartmentChanged: (value) =>
+                        setState(() => _departmentName = value),
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
