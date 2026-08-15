@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/constants/app_universities.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_dropdown_field.dart';
@@ -32,24 +33,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String? _selectedUniversity;
+  /// Seçilen üniversite — id ve name içerir.
+  UniversityEntry? _selectedUniversity;
   String? _selectedDepartment;
   int? _selectedClassYear;
   int? _selectedGraduationYear;
-
-  // Mock üniversite listesi (Firestore entegrasyonu kapsam dışı)
-  static const List<String> _universities = [
-    'İstanbul Teknik Üniversitesi',
-    'Boğaziçi Üniversitesi',
-    'Orta Doğu Teknik Üniversitesi',
-    'Ankara Üniversitesi',
-    'İstanbul Üniversitesi',
-    'Hacettepe Üniversitesi',
-    'Ege Üniversitesi',
-    'Dokuz Eylül Üniversitesi',
-    'Marmara Üniversitesi',
-    'Gazi Üniversitesi',
-  ];
 
   // Mock bölüm listesi (Firestore entegrasyonu kapsam dışı)
   static const List<String> _departments = [
@@ -155,17 +143,17 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   const ProfileFormSection(title: 'Eğitim Bilgileri'),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Üniversite
-                  AppDropdownField<String>(
+                  // Üniversite — kTurkishUniversities sabitinden beslenir
+                  AppDropdownField<UniversityEntry>(
                     label: 'Üniversite',
                     hint: 'Üniversitenizi seçin',
                     value: _selectedUniversity,
                     prefixIcon: Icons.school_outlined,
-                    items: _universities
+                    items: kTurkishUniversities
                         .map(
                           (uni) => DropdownMenuItem(
                             value: uni,
-                            child: Text(uni),
+                            child: Text(uni.name),
                           ),
                         )
                         .toList(),
