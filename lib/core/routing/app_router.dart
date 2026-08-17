@@ -4,7 +4,7 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
-import '../../features/feed/screens/feed_screen.dart';
+import '../../features/feed/screens/home_shell_screen.dart';
 import '../../features/profile/screens/profile_completion_screen.dart';
 import 'app_routes.dart';
 
@@ -59,7 +59,7 @@ class AppRouter {
       case AppRoutes.home:
         return _buildRoute(
           settings,
-          const FeedScreen(),
+          const HomeShellScreen(),
         );
 
       default:
