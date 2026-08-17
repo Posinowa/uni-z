@@ -6,16 +6,15 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../features/profile/services/profile_service.dart';
 import '../services/auth_service.dart';
 
 /// Açılış (Splash) ekranı.
 ///
-/// Uygulama açıldığında kullanıcının oturum durumunu [AuthService.authStateChanges]
-/// üzerinden kontrol eder:
+/// Uygulama açıldığında kullanıcının oturum durumunu kontrol eder:
 /// - Oturum açmamışsa -> [AppRoutes.login]
-/// - Oturum açmışsa -> [AppRoutes.home] (geçici olarak)
-///
-/// Profil tamamlama ve ek kontroller ilerideki issue'larda eklenecektir.
+/// - Oturum açmış, profili varsa -> [AppRoutes.home]
+/// - Oturum açmış, profili yoksa -> [AppRoutes.profileCompletion]
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -32,10 +31,14 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  /// Kullanıcının auth durumunu kontrol eder ve ilgili ekrana yönlendirir.
+  /// Kullanıcının auth ve profil durumunu kontrol eder, ilgili ekrana yönlendirir.
   ///
-  /// Firebase Auth persistence restore gecikmelerini önlemek için
-  /// [AuthService.authStateChanges] stream'inin ilk emit'ini bekler.
+  /// Akış:
+  /// 1. Auth state beklenir.
+  /// 2. Kullanıcı yoksa -> /login
+  /// 3. Kullanıcı varsa Firestore'dan profil kontrol edilir.
+  /// 4. Profil yoksa -> /profile-completion
+  /// 5. Profil varsa -> /home
   Future<void> _checkAuthAndNavigate() async {
     try {
       final authService = AuthService();
@@ -49,10 +52,21 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (!mounted) return;
 
-      if (user != null) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      } else {
+      if (user == null) {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
+        return;
+      }
+
+      // Kullanıcı giriş yapmış — Firestore profili kontrol et
+      final profileService = ProfileService();
+      final profile = await profileService.getUserProfile(user.uid);
+
+      if (!mounted) return;
+
+      if (profile == null) {
+        Navigator.pushReplacementNamed(context, AppRoutes.profileCompletion);
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (_) {
       if (!mounted) return;
