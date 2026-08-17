@@ -9,6 +9,7 @@ import '../services/profile_service.dart';
 import '../widgets/logout_button.dart';
 import '../widgets/profile_form_section.dart';
 import '../widgets/profile_info_row.dart';
+import 'edit_profile_screen.dart';
 
 /// Kullanıcı profil ekranı.
 ///
@@ -73,11 +74,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Profil'),
         centerTitle: true,
+        actions: [
+          if (_profile != null)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Profili Düzenle',
+              onPressed: _navigateToEditProfile,
+            ),
+        ],
       ),
       body: SafeArea(
         child: _buildBody(),
       ),
     );
+  }
+
+  /// Profil düzenleme ekranına gider.
+  ///
+  /// Geri dönüşte güncelleme yapılmışsa profil yeniden yüklenir.
+  Future<void> _navigateToEditProfile() async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(profile: _profile!),
+      ),
+    );
+    if (updated == true) {
+      _loadProfile();
+    }
   }
 
   Widget _buildBody() {
