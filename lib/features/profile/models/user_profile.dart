@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'user_role.dart';
 
+const Object _sentinel = Object();
+
 /// Firestore `users` koleksiyonu için model sınıfı.
 class UserProfile {
   final String id;
@@ -92,18 +94,20 @@ class UserProfile {
   }
 
   /// Mevcut nesnenin güncellenmiş kopyasını oluşturur.
+  ///
+  /// Nullable alanlar ([phone], [profileImageUrl]) açıkça `null` geçilerek temizlenebilir (clear edilebilir).
   UserProfile copyWith({
     String? id,
     String? fullName,
     String? email,
-    String? phone,
+    Object? phone = _sentinel,
     String? universityId,
     String? universityName,
     String? departmentId,
     String? departmentName,
     int? classYear,
     int? expectedGraduationYear,
-    String? profileImageUrl,
+    Object? profileImageUrl = _sentinel,
     UserRole? role,
     bool? isVerifiedStudent,
     bool? isBanned,
@@ -115,7 +119,7 @@ class UserProfile {
       id: id ?? this.id,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
-      phone: phone ?? this.phone,
+      phone: identical(phone, _sentinel) ? this.phone : (phone as String?),
       universityId: universityId ?? this.universityId,
       universityName: universityName ?? this.universityName,
       departmentId: departmentId ?? this.departmentId,
@@ -123,7 +127,9 @@ class UserProfile {
       classYear: classYear ?? this.classYear,
       expectedGraduationYear:
           expectedGraduationYear ?? this.expectedGraduationYear,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      profileImageUrl: identical(profileImageUrl, _sentinel)
+          ? this.profileImageUrl
+          : (profileImageUrl as String?),
       role: role ?? this.role,
       isVerifiedStudent: isVerifiedStudent ?? this.isVerifiedStudent,
       isBanned: isBanned ?? this.isBanned,

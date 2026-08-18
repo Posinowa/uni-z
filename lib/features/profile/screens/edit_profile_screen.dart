@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -25,10 +24,17 @@ import '../widgets/profile_form_section.dart';
 ///
 /// Kapsam dışı: Profil fotoğrafı, üniversite ve bölüm değiştirme.
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({required this.profile, super.key});
+  const EditProfileScreen({
+    required this.profile,
+    this.profileService,
+    super.key,
+  });
 
   /// Düzenlenecek mevcut profil bilgisi.
   final UserProfile profile;
+
+  /// Test edilebilirlik için opsiyonel servis referansı.
+  final ProfileService? profileService;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -36,7 +42,8 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _profileService = ProfileService();
+  ProfileService get _profileService =>
+      widget.profileService ?? ProfileService();
 
   late final TextEditingController _fullNameController;
   late final TextEditingController _phoneController;
@@ -47,14 +54,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Sınıf seçenekleri: 1–6
-  static const List<int> _classYears = [1, 2, 3, 4, 5, 6];
+  // Sınıf seçenekleri: 1–6 (profildeki sınıf değeri listede yoksa güvenle eklenir)
+  late final List<int> _classYears;
 
   // Tahmini mezuniyet yılı: bu yıldan 8 yıl sonrasına kadar
-  static final List<int> _graduationYears = List.generate(
-    9,
-    (index) => DateTime.now().year + index,
-  );
+  // Profildeki mezuniyet yılı geçmiş veya liste dışında bir yılsa listeye dahil edilir (crash önlenir).
+  late final List<int> _graduationYears;
 
   @override
   void initState() {
@@ -68,6 +73,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     _selectedClassYear = widget.profile.classYear;
     _selectedGraduationYear = widget.profile.expectedGraduationYear;
+
+    // Sınıf listesini oluştur (profildeki değer liste dışındaysa listeye ekle)
+    final classYears = [1, 2, 3, 4, 5, 6];
+    if (widget.profile.classYear > 0 &&
+        !classYears.contains(widget.profile.classYear)) {
+      classYears.add(widget.profile.classYear);
+      classYears.sort();
+    }
+    _classYears = classYears;
+
+    // Mezuniyet yılı listesi: mevcut yıldan 8 yıl sonrasına kadar
+    final currentYear = DateTime.now().year;
+    final years = List.generate(9, (index) => currentYear + index);
+    if (widget.profile.expectedGraduationYear > 0 &&
+        !years.contains(widget.profile.expectedGraduationYear)) {
+      years.add(widget.profile.expectedGraduationYear);
+      years.sort();
+    }
+    _graduationYears = years;
   }
 
   @override
@@ -84,10 +108,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _onSavePressed() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    if (widget.profile.id.trim().isEmpty) {
       setState(() {
-        _errorMessage = 'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.';
+        _errorMessage = 'Kullanıcı bilgisi bulunamadı.';
       });
       return;
     }
@@ -98,11 +121,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
+      final phoneText = _phoneController.text.trim();
       final updatedProfile = widget.profile.copyWith(
         fullName: _fullNameController.text.trim(),
-        phone: _phoneController.text.trim().isEmpty
-            ? null
-            : _phoneController.text.trim(),
+        phone: phoneText.isEmpty ? null : phoneText,
         classYear: _selectedClassYear,
         expectedGraduationYear: _selectedGraduationYear,
         updatedAt: DateTime.now(),

@@ -73,6 +73,22 @@ void main() {
       expect(updatedUser.role, UserRole.admin);
       expect(updatedUser.isBanned, true);
       expect(updatedUser.email, user.email);
+      expect(updatedUser.phone, '+905551112233'); // phone verilmediğinde eski değer korunur
+    });
+
+    test('copyWith nullable alanlar null geçildiğinde temizlenir (clear edilir)', () {
+      final user = UserProfile.fromMap(sampleMap);
+      expect(user.phone, isNotNull);
+      expect(user.profileImageUrl, isNotNull);
+
+      final clearedUser = user.copyWith(
+        phone: null,
+        profileImageUrl: null,
+      );
+
+      expect(clearedUser.phone, isNull);
+      expect(clearedUser.profileImageUrl, isNull);
+      expect(clearedUser.fullName, user.fullName);
     });
 
     test('Nullable alanlar ve varsayılan değerler doğru işlenir', () {
