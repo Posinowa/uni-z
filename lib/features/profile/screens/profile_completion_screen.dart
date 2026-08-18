@@ -1,12 +1,17 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_universities.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_dropdown_field.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../models/user_profile.dart';
+import '../models/user_role.dart';
+import '../services/profile_service.dart';
 import '../widgets/department_input_field.dart';
 import '../widgets/profile_form_section.dart';
 
@@ -20,7 +25,8 @@ import '../widgets/profile_form_section.dart';
 /// - Sınıf (zorunlu)
 /// - Tahmini mezuniyet yılı (zorunlu)
 ///
-/// Firestore kaydı bu ekranda yapılmaz. Sadece form UI ve validasyon içerir.
+/// Form gönderildiğinde Firestore `users/{uid}` dokümanı oluşturulur.
+/// Başarılı kayıt sonrası /home ekranına yönlendirilir.
 class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
 
@@ -33,13 +39,18 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _profileService = ProfileService();
 
   /// Seçilen üniversite — id ve name içerir.
   UniversityEntry? _selectedUniversity;
+
   /// Seçilen veya manuel girilen bölüm adı.
   String? _departmentName;
   int? _selectedClassYear;
   int? _selectedGraduationYear;
+
+  bool _isLoading = false;
+  String? _errorMessage;
 
   // Sınıf seçenekleri: 1–6
   static const List<int> _classYears = [1, 2, 3, 4, 5, 6];
@@ -57,19 +68,66 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
-  /// Kaydet butonuna basıldığında form validasyonu çalışır.
-  void _onSavePressed() {
+  /// Kaydet butonuna basıldığında form validasyonu ve Firestore kaydı çalışır.
+  Future<void> _onSavePressed() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // _departmentName burada hazır; Firestore kaydı kapsam dışı.
-    // Başarılı validasyon sonrası snackbar gösterilir.
-    final _ = _departmentName;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profil bilgileri kaydedildi.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        _errorMessage =
+            'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final profile = UserProfile(
+        id: currentUser.uid,
+        fullName: _fullNameController.text.trim(),
+        email: currentUser.email ?? '',
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        universityId: _selectedUniversity!.id,
+        universityName: _selectedUniversity!.name,
+        departmentId: '',
+        departmentName: _departmentName ?? '',
+        classYear: _selectedClassYear!,
+        expectedGraduationYear: _selectedGraduationYear!,
+        profileImageUrl: null,
+        role: UserRole.student,
+        isVerifiedStudent: false,
+        isBanned: false,
+        fcmTokens: const [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _profileService.createUserProfile(profile);
+
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Profil kaydedilemedi. Lütfen tekrar deneyin.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -91,6 +149,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   // ── Üst Alan ──
                   _buildHeader(),
                   const SizedBox(height: AppSpacing.xxxl),
+
+                  // ── Hata Mesajı ──
+                  if (_errorMessage != null) ...[  
+                    _buildErrorBanner(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
 
                   // ── Kişisel Bilgiler ──
                   const ProfileFormSection(title: 'Kişisel Bilgiler'),
@@ -209,7 +273,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   // ── Kaydet Butonu ──
                   PrimaryButton(
                     text: 'Profili Tamamla',
-                    onPressed: _onSavePressed,
+                    onPressed: _isLoading ? null : _onSavePressed,
+                    isLoading: _isLoading,
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
                 ],
@@ -253,6 +318,30 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Hata durumunda gösterilen banner.
+  Widget _buildErrorBanner() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
