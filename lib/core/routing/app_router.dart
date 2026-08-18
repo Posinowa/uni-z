@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/feed/screens/feed_screen.dart';
+import '../../features/profile/screens/profile_completion_screen.dart';
 import 'app_routes.dart';
 
 /// Uygulamanın route yapılandırması.
@@ -39,7 +41,7 @@ class AppRouter {
       case AppRoutes.register:
         return _buildRoute(
           settings,
-          const _PlaceholderScreen(title: 'Register'),
+          const RegisterScreen(),
         );
 
       case AppRoutes.forgotPassword:
@@ -51,7 +53,7 @@ class AppRouter {
       case AppRoutes.profileCompletion:
         return _buildRoute(
           settings,
-          const _PlaceholderScreen(title: 'Profile Completion'),
+          const ProfileCompletionScreen(),
         );
 
       case AppRoutes.home:
@@ -76,30 +78,6 @@ class AppRouter {
     return MaterialPageRoute<dynamic>(
       builder: (_) => page,
       settings: settings,
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Placeholder ekranlar — gerçek ekranlar geliştirilene kadar kullanılır.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Henüz geliştirilmemiş ekranlar için geçici placeholder.
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Text(
-          '$title Screen',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      ),
     );
   }
 }
