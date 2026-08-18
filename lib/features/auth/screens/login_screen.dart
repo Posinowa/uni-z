@@ -20,7 +20,12 @@ import '../providers/auth_provider.dart';
 ///
 /// Login işlemi [AuthProvider] üzerinden yapılır — UI direkt Firebase'e erişmez.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    this.profileService,
+    super.key,
+  });
+
+  final ProfileService? profileService;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -30,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  ProfileService get _profileService => widget.profileService ?? ProfileService();
 
   @override
   void dispose() {
@@ -73,8 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Başarılı giriş — Firestore profili kontrol et
     try {
       final uid = authProvider.currentUser!.uid;
-      final profileService = ProfileService();
-      final profile = await profileService.getUserProfile(uid);
+      final profile = await _profileService.getUserProfile(uid);
 
       if (!mounted) return;
 
