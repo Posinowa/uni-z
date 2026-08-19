@@ -1,0 +1,135 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'post_status.dart';
+import 'post_type.dart';
+
+const Object _sentinel = Object();
+
+/// Firestore `posts` koleksiyonu için model sınıfı.
+class FeedPost {
+  final String id;
+  final String authorId;
+  final String authorName;
+  final String? authorPhotoUrl;
+  final String universityId;
+  final String? departmentId;
+  final PostType type;
+  final String text;
+  final List<String> imageUrls;
+  final int likeCount;
+  final int reportCount;
+  final PostStatus status;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  const FeedPost({
+    required this.id,
+    required this.authorId,
+    required this.authorName,
+    this.authorPhotoUrl,
+    required this.universityId,
+    this.departmentId,
+    this.type = PostType.general,
+    this.text = '',
+    this.imageUrls = const [],
+    this.likeCount = 0,
+    this.reportCount = 0,
+    this.status = PostStatus.published,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  /// Map (Firestore belge verisi) nesnesinden [FeedPost] oluşturur.
+  factory FeedPost.fromMap(Map<String, dynamic> map, {String? id}) {
+    return FeedPost(
+      id: id ?? map['id'] as String? ?? '',
+      authorId: map['authorId'] as String? ?? '',
+      authorName: map['authorName'] as String? ?? '',
+      authorPhotoUrl: map['authorPhotoUrl'] as String?,
+      universityId: map['universityId'] as String? ?? '',
+      departmentId: map['departmentId'] as String?,
+      type: PostType.fromString(map['type'] as String?),
+      text: map['text'] as String? ?? '',
+      imageUrls: (map['imageUrls'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      likeCount: (map['likeCount'] as num?)?.toInt() ?? 0,
+      reportCount: (map['reportCount'] as num?)?.toInt() ?? 0,
+      status: PostStatus.fromString(map['status'] as String?),
+      createdAt: _parseDateTime(map['createdAt']),
+      updatedAt: _parseDateTime(map['updatedAt']),
+    );
+  }
+
+  /// [FeedPost] nesnesini Firestore'a kaydedilecek Map formatına dönüştürür.
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'authorId': authorId,
+      'authorName': authorName,
+      'authorPhotoUrl': authorPhotoUrl,
+      'universityId': universityId,
+      'departmentId': departmentId,
+      'type': type.value,
+      'text': text,
+      'imageUrls': imageUrls,
+      'likeCount': likeCount,
+      'reportCount': reportCount,
+      'status': status.value,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+    };
+  }
+
+  /// Mevcut nesnenin güncellenmiş kopyasını oluşturur.
+  ///
+  /// Nullable alanlar ([authorPhotoUrl], [departmentId]) açıkça `null` geçilerek temizlenebilir.
+  FeedPost copyWith({
+    String? id,
+    String? authorId,
+    String? authorName,
+    Object? authorPhotoUrl = _sentinel,
+    String? universityId,
+    Object? departmentId = _sentinel,
+    PostType? type,
+    String? text,
+    List<String>? imageUrls,
+    int? likeCount,
+    int? reportCount,
+    PostStatus? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return FeedPost(
+      id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
+      authorName: authorName ?? this.authorName,
+      authorPhotoUrl: identical(authorPhotoUrl, _sentinel)
+          ? this.authorPhotoUrl
+          : (authorPhotoUrl as String?),
+      universityId: universityId ?? this.universityId,
+      departmentId: identical(departmentId, _sentinel)
+          ? this.departmentId
+          : (departmentId as String?),
+      type: type ?? this.type,
+      text: text ?? this.text,
+      imageUrls: imageUrls ?? this.imageUrls,
+      likeCount: likeCount ?? this.likeCount,
+      reportCount: reportCount ?? this.reportCount,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// Farklı tiplerdeki tarih verilerini (Timestamp, DateTime, String, int) güvenli bir şekilde [DateTime] nesnesine ayrıştırır.
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
+  }
+}
