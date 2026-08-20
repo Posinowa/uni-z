@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/services/firestore_service.dart';
-import '../models/post_model.dart';
+import '../models/feed_post.dart';
 import '../models/post_status.dart';
 
 /// Firestore `posts` koleksiyonu üzerindeki okuma/yazma işlemlerini yöneten servis sınıfı.
@@ -20,7 +20,7 @@ class FeedService extends FirestoreService {
   ///
   /// [post] nesnesinin `id` değeri belge kimliği (document ID) olarak kullanılır.
   /// Boş `id` durumunda [ArgumentError] fırlatır.
-  Future<void> createPost(PostModel post) async {
+  Future<void> createPost(FeedPost post) async {
     if (post.id.trim().isEmpty) {
       throw ArgumentError('Gönderi kimliği (id) boş olamaz.');
     }
@@ -48,14 +48,14 @@ class FeedService extends FirestoreService {
   /// Yayında olan gönderileri `createdAt` alanına göre azalan sırada dinler.
   ///
   /// Sadece `status == published` olan gönderiler döner.
-  Stream<List<PostModel>> watchPublishedPosts() {
+  Stream<List<FeedPost>> watchPublishedPosts() {
     return collection
         .where('status', isEqualTo: PostStatus.published.value)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.data(), id: doc.id))
+          .map((doc) => FeedPost.fromMap(doc.data(), id: doc.id))
           .toList();
     });
   }
