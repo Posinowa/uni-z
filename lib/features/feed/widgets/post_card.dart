@@ -14,8 +14,9 @@ class PostCard extends StatelessWidget {
   /// Gösterilecek gönderi verisi.
   final FeedPost post;
 
-  /// Gönderi yazarının üniversite adı.
-  final String universityName;
+  /// Gönderi yazarının üniversite adı (opsiyonel).
+  /// Firestore'dan `universityName` alanı gelene kadar boş olabilir.
+  final String? universityName;
 
   /// Gönderi yazarının bölüm adı (opsiyonel).
   final String? departmentName;
@@ -23,7 +24,7 @@ class PostCard extends StatelessWidget {
   const PostCard({
     super.key,
     required this.post,
-    required this.universityName,
+    this.universityName,
     this.departmentName,
   });
 
@@ -82,14 +83,14 @@ class PostCard extends StatelessWidget {
 class _AuthorHeader extends StatelessWidget {
   final String authorName;
   final String? authorPhotoUrl;
-  final String universityName;
+  final String? universityName;
   final String? departmentName;
   final DateTime? createdAt;
 
   const _AuthorHeader({
     required this.authorName,
     this.authorPhotoUrl,
-    required this.universityName,
+    this.universityName,
     this.departmentName,
     this.createdAt,
   });
@@ -115,13 +116,15 @@ class _AuthorHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                _buildSubtitle(),
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              if (_buildSubtitle().isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  _buildSubtitle(),
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),
@@ -164,10 +167,15 @@ class _AuthorHeader extends StatelessWidget {
 
   /// Üniversite ve bölüm bilgisini birleştirerek alt başlık oluşturur.
   String _buildSubtitle() {
-    if (departmentName != null && departmentName!.isNotEmpty) {
-      return '$universityName · $departmentName';
+    final uni = universityName ?? '';
+    final dept = departmentName ?? '';
+
+    if (uni.isNotEmpty && dept.isNotEmpty) {
+      return '$uni · $dept';
     }
-    return universityName;
+    if (uni.isNotEmpty) return uni;
+    if (dept.isNotEmpty) return dept;
+    return '';
   }
 
   /// Geçmiş tarihi okunabilir formatta döndürür (örn: "2d", "3sa", "5dk").
