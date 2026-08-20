@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/services/firestore_service.dart';
@@ -12,11 +12,8 @@ class FeedService extends FirestoreService {
   /// Yeni bir [FeedService] oluşturur.
   ///
   /// Opsiyonel [firestoreInstance] parametresi test edilebilirlik için kullanılır.
-  FeedService({FirebaseFirestore? firestoreInstance})
-      : super(
-          FirestoreCollections.posts,
-          firestoreInstance: firestoreInstance,
-        );
+  FeedService({super.firestoreInstance})
+      : super(FirestoreCollections.posts);
 
   /// Yayında olan gönderileri `createdAt` alanına göre azalan sırada dinler.
   ///
