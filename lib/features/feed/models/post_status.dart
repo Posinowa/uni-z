@@ -1,4 +1,4 @@
-/// Post yayın durumlarını tanımlayan enum.
+/// Ana akış gönderi durumlarını tanımlayan enum.
 ///
 /// Firestore `posts` koleksiyonundaki `status` alanına karşılık gelir.
 enum PostStatus {

@@ -1,4 +1,4 @@
-/// Post türlerini tanımlayan enum.
+/// Ana akış gönderi türlerini tanımlayan enum.
 ///
 /// Firestore `posts` koleksiyonundaki `type` alanına karşılık gelir.
 enum PostType {
