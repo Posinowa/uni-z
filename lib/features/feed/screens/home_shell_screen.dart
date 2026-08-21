@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../courses/screens/courses_screen.dart';
 import '../../events/screens/events_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import 'create_post_screen.dart';
 import 'feed_screen.dart';
 
 /// Uygulamanın ana shell ekranı.
@@ -108,11 +109,23 @@ class _CreatePostPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Yakında burada post oluşturabileceksiniz.',
+              'Metin veya görselli post paylaş.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CreatePostScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text('Post Oluştur'),
             ),
           ],
         ),
