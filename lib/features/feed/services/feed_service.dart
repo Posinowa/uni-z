@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/services/firestore_service.dart';
@@ -12,11 +11,8 @@ import '../models/feed_post.dart';
 /// Bu servis UI katmanından doğrudan çağrılmaz — [FeedProvider]
 /// veya ekran widget'ları üzerinden kullanılır.
 class FeedService extends FirestoreService {
-  FeedService({FirebaseFirestore? firestoreInstance})
-      : super(
-          FirestoreCollections.posts,
-          firestoreInstance: firestoreInstance,
-        );
+  FeedService({super.firestoreInstance})
+      : super(FirestoreCollections.posts);
 
   /// Yeni bir post oluşturur ve Firestore'a kaydeder.
   ///
