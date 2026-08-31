@@ -81,7 +81,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
     if (text.isEmpty || _isLoading) return;
 
     final currentUser = _auth.currentUser;
-    if (currentUser == null && widget.profileService == null) {
+    if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gönderi paylaşmak için giriş yapmış olmalısınız.'),
@@ -94,7 +94,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final uid = currentUser?.uid ?? 'current-user';
+      final uid = currentUser.uid;
 
       // Kullanıcı profil bilgilerini (snapshot) getir
       final profile = await _profileService.getUserProfile(uid);
@@ -155,9 +155,10 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
+      debugPrint('Gönderi paylaşma hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gönderi paylaşılırken bir hata oluştu: $e'),
+        const SnackBar(
+          content: Text('Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.'),
           backgroundColor: AppColors.error,
         ),
       );

@@ -23,21 +23,26 @@ class FeedService extends FirestoreService {
   Future<String> createPost(FeedPost post) async {
     final docRef =
         post.id.trim().isEmpty ? collection.doc() : collection.doc(post.id);
-    final now = DateTime.now();
-    final postToSave = post.copyWith(
-      id: docRef.id,
-      createdAt: post.createdAt ?? now,
-      updatedAt: post.updatedAt ?? now,
-    );
 
-    await docRef.set(postToSave.toMap());
+    final createdAt = post.createdAt != null
+        ? Timestamp.fromDate(post.createdAt!)
+        : FieldValue.serverTimestamp();
+    final updatedAt = post.updatedAt != null
+        ? Timestamp.fromDate(post.updatedAt!)
+        : FieldValue.serverTimestamp();
+
+    final postData = post.copyWith(id: docRef.id).toMap()
+      ..['createdAt'] = createdAt
+      ..['updatedAt'] = updatedAt;
+
+    await docRef.set(postData);
     return docRef.id;
   }
 
   /// Yayınlanmış (`status == published`) tüm gönderileri anlık olarak dinler.
   ///
   /// Gönderiler oluşturulma tarihine (`createdAt`) göre yeniden eskiye doğru sıralanır.
-  Stream<List<FeedPost>> watchFeedPosts() {
+  Stream<List<FeedPost>> watchPublishedPosts() {
     return collection
         .where('status', isEqualTo: PostStatus.published.value)
         .orderBy('createdAt', descending: true)
@@ -47,19 +52,5 @@ class FeedService extends FirestoreService {
           .map((doc) => FeedPost.fromMap(doc.data(), id: doc.id))
           .toList();
     });
-  }
-
-  /// Yayınlanmış (`status == published`) tüm gönderileri tek seferlik çeker.
-  ///
-  /// Gönderiler oluşturulma tarihine (`createdAt`) göre yeniden eskiye doğru sıralanır.
-  Future<List<FeedPost>> getFeedPosts() async {
-    final snapshot = await collection
-        .where('status', isEqualTo: PostStatus.published.value)
-        .orderBy('createdAt', descending: true)
-        .get();
-
-    return snapshot.docs
-        .map((doc) => FeedPost.fromMap(doc.data(), id: doc.id))
-        .toList();
   }
 }
