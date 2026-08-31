@@ -101,13 +101,13 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
 
       final authorName = (profile?.fullName.trim().isNotEmpty ?? false)
           ? profile!.fullName
-          : (currentUser?.displayName?.trim().isNotEmpty ?? false)
-              ? currentUser!.displayName!
+          : (currentUser.displayName?.trim().isNotEmpty ?? false)
+              ? currentUser.displayName!
               : 'Öğrenci';
 
       final universityId = profile?.universityId ?? '';
       final departmentId = profile?.departmentId;
-      final authorPhotoUrl = profile?.profileImageUrl ?? currentUser?.photoURL;
+      final authorPhotoUrl = profile?.profileImageUrl ?? currentUser.photoURL;
 
       final now = DateTime.now();
       final post = FeedPost(
