@@ -49,11 +49,16 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
 
   void _onShare() {
     // Firestore kaydı bu issue kapsamında değil.
+    // Tab içinde çalıştığı için Navigator.pop yerine snackbar gösterilir.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Gönderi paylaşma özelliği yakında eklenecek.'),
       ),
     );
+
+    // Metin alanını temizle ve seçili türü sıfırla.
+    _textController.clear();
+    setState(() => _selectedType = PostType.general);
   }
 
   @override
