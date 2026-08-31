@@ -14,18 +14,9 @@ class PostCard extends StatelessWidget {
   /// Gösterilecek gönderi verisi.
   final FeedPost post;
 
-  /// Gönderi yazarının üniversite adı (opsiyonel).
-  /// Firestore'dan `universityName` alanı gelene kadar boş olabilir.
-  final String? universityName;
-
-  /// Gönderi yazarının bölüm adı (opsiyonel).
-  final String? departmentName;
-
   const PostCard({
     super.key,
     required this.post,
-    this.universityName,
-    this.departmentName,
   });
 
   @override
@@ -42,8 +33,8 @@ class PostCard extends StatelessWidget {
             _AuthorHeader(
               authorName: post.authorName,
               authorPhotoUrl: post.authorPhotoUrl,
-              universityName: universityName,
-              departmentName: departmentName,
+              universityName: post.universityName,
+              departmentName: post.departmentName,
               createdAt: post.createdAt,
             ),
 

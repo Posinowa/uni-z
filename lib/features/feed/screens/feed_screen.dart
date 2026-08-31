@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/states/states.dart';
+import '../../profile/widgets/logout_button.dart';
 import '../models/feed_post.dart';
 import '../services/feed_service.dart';
 import '../widgets/post_card.dart';
@@ -25,30 +26,49 @@ class _FeedScreenState extends State<FeedScreen> {
   /// Firestore `posts` koleksiyonu ile iletişim kuran servis.
   final FeedService _feedService = FeedService();
 
+  /// Aktif Firestore stream'i. Retry sırasında yeni stream alınır.
+  late Stream<List<FeedPost>> _postsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _postsStream = _feedService.watchPublishedPosts();
+  }
+
+  /// Hata sonrası yeni bir stream başlatarak tekrar deneme yapar.
+  void _retry() {
+    setState(() {
+      _postsStream = _feedService.watchPublishedPosts();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Uni'z Akış"),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: LogoutButton(),
+          ),
+        ],
       ),
       body: StreamBuilder<List<FeedPost>>(
-        stream: _feedService.watchPublishedPosts(),
+        stream: _postsStream,
         builder: (context, snapshot) {
+          // ─── Yükleniyor Durumu ────────────────────────────────
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoadingView();
+          }
+
           // ─── Hata Durumu ──────────────────────────────────────
           if (snapshot.hasError) {
             return AppErrorState(
               title: 'Gönderiler yüklenemedi',
               message: 'Bir hata oluştu. Lütfen tekrar deneyin.',
-              onRetry: () {
-                // StreamBuilder yeniden build olması için setState çağırılır.
-                setState(() {});
-              },
+              onRetry: _retry,
             );
-          }
-
-          // ─── Yükleniyor Durumu ────────────────────────────────
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingView();
           }
 
           final posts = snapshot.data ?? [];
