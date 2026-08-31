@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../courses/screens/courses_screen.dart';
 import '../../events/screens/events_screen.dart';
 import '../../profile/screens/profile_screen.dart';
-import 'create_post_screen.dart';
+import 'create_text_post_screen.dart';
 import 'feed_screen.dart';
 
 /// Uygulamanın ana shell ekranı.
@@ -14,7 +11,7 @@ import 'feed_screen.dart';
 /// Bottom navigation aracılığıyla 5 sekme arasında geçiş sağlar:
 /// - Akış (FeedScreen)
 /// - Dersler (CoursesScreen)
-/// - Paylaş (geçici placeholder)
+/// - Paylaş (CreateTextPostScreen)
 /// - Etkinlikler (EventsScreen)
 /// - Profil (ProfileScreen)
 class HomeShellScreen extends StatefulWidget {
@@ -29,13 +26,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   int _currentIndex = 0;
 
   /// Her sekmeye karşılık gelen ekranlar listesi.
-  final List<Widget> _screens = const [
-    FeedScreen(),
-    CoursesScreen(),
-    _CreatePostPlaceholder(),
-    EventsScreen(),
-    ProfileScreen(),
-  ];
+  List<Widget> get _screens => [
+        const FeedScreen(),
+        const CoursesScreen(),
+        CreateTextPostScreen(
+          onPostCreated: () {
+            setState(() => _currentIndex = 0);
+          },
+        ),
+        const EventsScreen(),
+        const ProfileScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -76,59 +77,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             label: 'Profil',
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Geçici "Paylaş" sekmesi içeriği.
-///
-/// Post oluşturma ekranı ileride ayrı bir issue'da geliştirilecektir.
-class _CreatePostPlaceholder extends StatelessWidget {
-  const _CreatePostPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Paylaş'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.add_circle_outline,
-              size: 64,
-              color: AppColors.primaryIndigo,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Paylaş',
-              style: AppTextStyles.headlineMedium,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Metin veya görselli post paylaş.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CreatePostScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.edit),
-              label: const Text('Post Oluştur'),
-            ),
-          ],
-        ),
       ),
     );
   }

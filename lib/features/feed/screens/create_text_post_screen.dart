@@ -1,0 +1,312 @@
+import 'dart:io';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/mock_storage_service.dart';
+import '../../../core/services/storage_service.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/buttons/primary_button.dart';
+import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../../profile/services/profile_service.dart';
+import '../models/feed_post.dart';
+import '../models/post_status.dart';
+import '../models/post_type.dart';
+import '../services/feed_service.dart';
+import '../widgets/post_image_picker.dart';
+
+/// Kullanıcının yeni metin ve görsel gönderisi oluşturabileceği form ekranı.
+///
+/// Post türü (Genel, Kampüs, Duyuru) seçimi, metin içeriği ve görsel seçimi içerir.
+/// Görsel seçildiğinde [StorageService.uploadFile] çağrısı ile görsel yüklenir
+/// ve dönen URL, Firestore post kaydının [imageUrls] alanına eklenir.
+///
+/// Paylaşım sırasında mevcut kullanıcının profil bilgilerini snapshot olarak
+/// gönderiye ekler ve Firestore `posts` koleksiyonuna kaydeder.
+class CreateTextPostScreen extends StatefulWidget {
+  /// Gönderi başarıyla oluşturulduğunda çağrılacak opsiyonel geri bildirim fonksiyonu.
+  /// Shell ekranında sekmeyi akışa (Feed) çevirmek için kullanılır.
+  final VoidCallback? onPostCreated;
+
+  /// Test edilebilirlik için opsiyonel servis parametreleri.
+  final FeedService? feedService;
+  final ProfileService? profileService;
+  final StorageService? storageService;
+  final FirebaseAuth? authInstance;
+
+  const CreateTextPostScreen({
+    this.onPostCreated,
+    this.feedService,
+    this.profileService,
+    this.storageService,
+    this.authInstance,
+    super.key,
+  });
+
+  @override
+  State<CreateTextPostScreen> createState() => _CreateTextPostScreenState();
+}
+
+class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
+  late final FeedService _feedService;
+  late final ProfileService _profileService;
+  late final StorageService _storageService;
+  late final FirebaseAuth _auth;
+
+  final TextEditingController _textController = TextEditingController();
+
+  PostType _selectedType = PostType.general;
+  XFile? _selectedImage;
+  bool _hasText = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _feedService = widget.feedService ?? FeedService();
+    _profileService = widget.profileService ?? ProfileService();
+    _storageService = widget.storageService ?? MockStorageService();
+    _auth = widget.authInstance ?? FirebaseAuth.instance;
+
+    _textController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _textController.removeListener(_onTextChanged);
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final hasText = _textController.text.trim().isNotEmpty;
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
+    }
+  }
+
+  /// Paylaşım butonunun aktif olup olmadığını belirler.
+  bool get _canSubmit => (_hasText || _selectedImage != null) && !_isLoading;
+
+  /// Gönderiyi Firestore'a kaydeder.
+  Future<void> _submitPost() async {
+    final text = _textController.text.trim();
+    if (!_canSubmit) return;
+
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderi paylaşmak için giriş yapmış olmalısınız.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final uid = currentUser.uid;
+
+      // Kullanıcı profil bilgilerini (snapshot) getir
+      final profile = await _profileService.getUserProfile(uid);
+
+      final authorName = (profile?.fullName.trim().isNotEmpty ?? false)
+          ? profile!.fullName
+          : (currentUser.displayName?.trim().isNotEmpty ?? false)
+              ? currentUser.displayName!
+              : 'Öğrenci';
+
+      final universityId = profile?.universityId ?? '';
+      final universityName = profile?.universityName ?? '';
+      final departmentId = profile?.departmentId;
+      final departmentName = profile?.departmentName;
+      final authorPhotoUrl = profile?.profileImageUrl ?? currentUser.photoURL;
+
+      // Görsel seçildiyse storage servisine yükle ve URL al
+      final imageUrls = <String>[];
+      if (_selectedImage != null) {
+        final imageFile = File(_selectedImage!.path);
+        final fileName = 'post_${uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final uploadedUrl = await _storageService.uploadFile(
+          file: imageFile,
+          folder: 'post_images',
+          fileName: fileName,
+        );
+        imageUrls.add(uploadedUrl);
+      }
+
+      final now = DateTime.now();
+      final post = FeedPost(
+        id: '',
+        authorId: uid,
+        authorName: authorName,
+        authorPhotoUrl: authorPhotoUrl,
+        universityId: universityId,
+        universityName: universityName,
+        departmentId: departmentId,
+        departmentName: departmentName,
+        type: _selectedType,
+        text: text,
+        imageUrls: imageUrls,
+        likeCount: 0,
+        reportCount: 0,
+        status: PostStatus.published,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _feedService.createPost(post);
+
+      if (!mounted) return;
+
+      _textController.clear();
+      setState(() {
+        _isLoading = false;
+        _hasText = false;
+        _selectedImage = null;
+        _selectedType = PostType.general;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderiniz başarıyla paylaşıldı.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Başarılı kayıt sonrası akış ekranına yönlendir
+      if (widget.onPostCreated != null) {
+        widget.onPostCreated!();
+      } else if (Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Yeni Gönderi'),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Post Türü Seçici
+              _buildTypeSelector(),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Metin Giriş Alanı
+              AppTextField(
+                hint: 'Ne düşünüyorsun?',
+                controller: _textController,
+                maxLines: 5,
+                enabled: !_isLoading,
+                textInputAction: TextInputAction.newline,
+                keyboardType: TextInputType.multiline,
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              // Görsel Seçici ve Önizleme
+              PostImagePicker(
+                selectedImage: _selectedImage,
+                enabled: !_isLoading,
+                onImageChanged: (image) {
+                  setState(() => _selectedImage = image);
+                },
+              ),
+
+              const SizedBox(height: AppSpacing.xxl),
+
+              // Paylaş Butonu
+              PrimaryButton(
+                text: 'Paylaş',
+                isLoading: _isLoading,
+                isDisabled: !_canSubmit,
+                onPressed: _canSubmit ? _submitPost : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Post Türü',
+          style: AppTextStyles.labelMedium,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.sm,
+          children: PostType.values.map((type) {
+            final isSelected = type == _selectedType;
+            return ChoiceChip(
+              label: Text(_labelForType(type)),
+              selected: isSelected,
+              onSelected: _isLoading
+                  ? null
+                  : (selected) {
+                      if (selected) {
+                        setState(() => _selectedType = type);
+                      }
+                    },
+              selectedColor: AppColors.primaryIndigo,
+              backgroundColor: AppColors.surface,
+              labelStyle: AppTextStyles.labelLarge.copyWith(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                side: BorderSide(
+                  color: isSelected
+                      ? AppColors.primaryIndigo
+                      : AppColors.border,
+                ),
+              ),
+              showCheckmark: false,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  String _labelForType(PostType type) {
+    switch (type) {
+      case PostType.general:
+        return 'Genel';
+      case PostType.campus:
+        return 'Kampüs';
+      case PostType.announcement:
+        return 'Duyuru';
+    }
+  }
+}
