@@ -36,8 +36,12 @@ class ReportService extends FirestoreService {
       );
     }
 
-    // Firestore'un otomatik ID üretmesi için add() kullanılır.
-    await collection.add(report.toMap());
+    final docRef = collection.doc();
+    final reportWithId = report.copyWith(
+      id: docRef.id,
+      createdAt: report.createdAt ?? DateTime.now(),
+    );
+    await docRef.set(reportWithId.toMap());
   }
 
   /// Belirtilen kullanıcının ilgili içeriği daha önce raporlayıp

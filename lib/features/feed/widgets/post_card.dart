@@ -1,35 +1,43 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../reports/widgets/report_bottom_sheet.dart';
 import '../models/feed_post.dart';
+import 'post_like_button.dart';
 
 /// Ana akışta gösterilecek gönderi kartı bileşeni.
 ///
 /// [FeedPost] modelini alır ve kartı oluşturur.
-/// Beğeni ve rapor butonları görsel olarak bulunur ancak
-/// bu issue kapsamında işlevsel değildir.
+/// Beğeni ve rapor butonları işlevseldir.
 class PostCard extends StatelessWidget {
   /// Gösterilecek gönderi verisi.
   final FeedPost post;
 
-  /// Gönderi yazarının üniversite adı.
-  final String universityName;
+  /// Gönderi yazarının üniversite adı (opsiyonel, belirtilmezse post'tan okunur).
+  final String? universityName;
 
-  /// Gönderi yazarının bölüm adı (opsiyonel).
+  /// Gönderi yazarının bölüm adı (opsiyonel, belirtilmezse post'tan okunur).
   final String? departmentName;
+
+  /// Raporu/beğeniyi oluşturan kullanıcının kimliği (opsiyonel, belirtilmezse auth'tan okunur).
+  final String? currentUserId;
 
   const PostCard({
     super.key,
     required this.post,
-    required this.universityName,
+    this.universityName,
     this.departmentName,
+    this.currentUserId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final resolvedUni = universityName ?? post.universityName;
+    final resolvedDept = departmentName ?? post.departmentName;
 
     return Card(
       child: Padding(
@@ -41,8 +49,8 @@ class PostCard extends StatelessWidget {
             _AuthorHeader(
               authorName: post.authorName,
               authorPhotoUrl: post.authorPhotoUrl,
-              universityName: universityName,
-              departmentName: departmentName,
+              universityName: resolvedUni,
+              departmentName: resolvedDept,
               createdAt: post.createdAt,
             ),
 
@@ -66,7 +74,10 @@ class PostCard extends StatelessWidget {
               ),
 
             // ─── Alt Aksiyon Çubuğu ─────────────────────────────
-            _ActionBar(likeCount: post.likeCount),
+            _ActionBar(
+              post: post,
+              currentUserId: currentUserId,
+            ),
           ],
         ),
       ),
@@ -115,13 +126,15 @@ class _AuthorHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                _buildSubtitle(),
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              if (_buildSubtitle().isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  _buildSubtitle(),
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),
@@ -165,7 +178,10 @@ class _AuthorHeader extends StatelessWidget {
   /// Üniversite ve bölüm bilgisini birleştirerek alt başlık oluşturur.
   String _buildSubtitle() {
     if (departmentName != null && departmentName!.isNotEmpty) {
-      return '$universityName · $departmentName';
+      if (universityName.isNotEmpty) {
+        return '$universityName · $departmentName';
+      }
+      return departmentName!;
     }
     return universityName;
   }
@@ -245,48 +261,69 @@ class _PostImage extends StatelessWidget {
 }
 
 /// Beğeni sayısı ve rapor butonunu gösterir.
-/// Butonlar görsel olarak bulunur ancak tıklama işlevi yoktur.
 class _ActionBar extends StatelessWidget {
-  final int likeCount;
+  final FeedPost post;
+  final String? currentUserId;
 
-  const _ActionBar({required this.likeCount});
+  const _ActionBar({
+    required this.post,
+    this.currentUserId,
+  });
+
+  void _onReportPressed(BuildContext context) {
+    final effectiveUserId =
+        currentUserId ?? FirebaseAuth.instance.currentUser?.uid;
+
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderi raporlamak için giriş yapmalısınız.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    showReportBottomSheet(
+      context: context,
+      postId: post.id,
+      reportedBy: effectiveUserId,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveUserId =
+        currentUserId ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Row(
       children: [
-        // Beğeni butonu + sayısı
-        _ActionButton(
-          icon: Icons.favorite_border,
-          label: likeCount > 0 ? '$likeCount' : null,
-          onPressed: () {
-            // Beğeni tıklama bu issue kapsamında çalışmayacak.
-          },
+        // Beğeni butonu (#42 entegrasyonu)
+        PostLikeButton(
+          postId: post.id,
+          initialLikeCount: post.likeCount,
+          userId: effectiveUserId,
         ),
 
         const Spacer(),
 
-        // Rapor butonu
+        // Rapor butonu — bottom sheet açar
         _ActionButton(
           icon: Icons.flag_outlined,
-          onPressed: () {
-            // Raporlama bu issue kapsamında çalışmayacak.
-          },
+          onPressed: () => _onReportPressed(context),
         ),
       ],
     );
   }
 }
 
-/// Tekrar kullanılabilir aksiyon butonu (ikon + opsiyonel etiket).
+/// Tekrar kullanılabilir aksiyon butonu (ikon).
 class _ActionButton extends StatelessWidget {
   final IconData icon;
-  final String? label;
   final VoidCallback onPressed;
 
   const _ActionButton({
     required this.icon,
-    this.label,
     required this.onPressed,
   });
 
@@ -300,26 +337,10 @@ class _ActionButton extends StatelessWidget {
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.xs,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-            if (label != null) ...[
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                label!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ],
+        child: Icon(
+          icon,
+          size: 20,
+          color: AppColors.textSecondary,
         ),
       ),
     );
