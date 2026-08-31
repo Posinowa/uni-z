@@ -59,11 +59,11 @@ class PostImagePicker extends StatelessWidget {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Görsel seçilirken bir hata oluştu: $e'),
+          const SnackBar(
+            content: Text('Görsel seçilirken bir hata oluştu. Lütfen tekrar deneyin.'),
             backgroundColor: AppColors.error,
           ),
         );

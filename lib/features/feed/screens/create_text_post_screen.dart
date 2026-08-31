@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -7,19 +8,33 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../../profile/services/profile_service.dart';
+import '../models/feed_post.dart';
+import '../models/post_status.dart';
 import '../models/post_type.dart';
+import '../services/feed_service.dart';
 import '../widgets/post_image_picker.dart';
 
-/// Gönderi oluşturma ekranı.
+/// Kullanıcının yeni metin ve görsel gönderisi oluşturabileceği form ekranı.
 ///
-/// Post türü seçimi, metin girişi ve galeriden görsel seçimi içerir.
-/// R2 upload ve Firestore görsel kaydı bu issue kapsamında değildir.
+/// Post türü (Genel, Kampüs, Duyuru) seçimi, metin içeriği ve görsel seçimi içerir.
+/// Paylaşım sırasında mevcut kullanıcının profil bilgilerini snapshot olarak
+/// gönderiye ekler ve Firestore `posts` koleksiyonuna kaydeder.
 class CreateTextPostScreen extends StatefulWidget {
-  /// Gönderi oluşturulduğunda çağrılacak opsiyonel callback.
+  /// Gönderi başarıyla oluşturulduğunda çağrılacak opsiyonel geri bildirim fonksiyonu.
+  /// Shell ekranında sekmeyi akışa (Feed) çevirmek için kullanılır.
   final VoidCallback? onPostCreated;
+
+  /// Test edilebilirlik için opsiyonel servis parametreleri.
+  final FeedService? feedService;
+  final ProfileService? profileService;
+  final FirebaseAuth? authInstance;
 
   const CreateTextPostScreen({
     this.onPostCreated,
+    this.feedService,
+    this.profileService,
+    this.authInstance,
     super.key,
   });
 
@@ -28,6 +43,10 @@ class CreateTextPostScreen extends StatefulWidget {
 }
 
 class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
+  late final FeedService _feedService;
+  late final ProfileService _profileService;
+  late final FirebaseAuth _auth;
+
   final TextEditingController _textController = TextEditingController();
 
   PostType _selectedType = PostType.general;
@@ -38,6 +57,10 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
   @override
   void initState() {
     super.initState();
+    _feedService = widget.feedService ?? FeedService();
+    _profileService = widget.profileService ?? ProfileService();
+    _auth = widget.authInstance ?? FirebaseAuth.instance;
+
     _textController.addListener(_onTextChanged);
   }
 
@@ -58,35 +81,97 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
   /// Paylaşım butonunun aktif olup olmadığını belirler.
   bool get _canSubmit => (_hasText || _selectedImage != null) && !_isLoading;
 
+  /// Gönderiyi Firestore'a kaydeder.
   Future<void> _submitPost() async {
+    final text = _textController.text.trim();
     if (!_canSubmit) return;
+
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderi paylaşmak için giriş yapmış olmalısınız.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
-    // R2 upload ve Firestore URL kaydı bu issue kapsamında değildir.
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final uid = currentUser.uid;
 
-    if (!mounted) return;
+      // Kullanıcı profil bilgilerini (snapshot) getir
+      final profile = await _profileService.getUserProfile(uid);
 
-    _textController.clear();
-    setState(() {
-      _isLoading = false;
-      _hasText = false;
-      _selectedImage = null;
-      _selectedType = PostType.general;
-    });
+      final authorName = (profile?.fullName.trim().isNotEmpty ?? false)
+          ? profile!.fullName
+          : (currentUser.displayName?.trim().isNotEmpty ?? false)
+              ? currentUser.displayName!
+              : 'Öğrenci';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Gönderiniz başarıyla paylaşıldı.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+      final universityId = profile?.universityId ?? '';
+      final universityName = profile?.universityName ?? '';
+      final departmentId = profile?.departmentId;
+      final departmentName = profile?.departmentName;
+      final authorPhotoUrl = profile?.profileImageUrl ?? currentUser.photoURL;
 
-    if (widget.onPostCreated != null) {
-      widget.onPostCreated!();
-    } else if (Navigator.canPop(context)) {
-      Navigator.pop(context, true);
+      final now = DateTime.now();
+      final post = FeedPost(
+        id: '',
+        authorId: uid,
+        authorName: authorName,
+        authorPhotoUrl: authorPhotoUrl,
+        universityId: universityId,
+        universityName: universityName,
+        departmentId: departmentId,
+        departmentName: departmentName,
+        type: _selectedType,
+        text: text,
+        imageUrls: const [],
+        likeCount: 0,
+        reportCount: 0,
+        status: PostStatus.published,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _feedService.createPost(post);
+
+      if (!mounted) return;
+
+      _textController.clear();
+      setState(() {
+        _isLoading = false;
+        _hasText = false;
+        _selectedImage = null;
+        _selectedType = PostType.general;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderiniz başarıyla paylaşıldı.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Başarılı kayıt sonrası akış ekranına yönlendir
+      if (widget.onPostCreated != null) {
+        widget.onPostCreated!();
+      } else if (Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
