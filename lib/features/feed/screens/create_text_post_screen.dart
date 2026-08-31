@@ -151,11 +151,10 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
       } else if (Navigator.canPop(context)) {
         Navigator.pop(context, true);
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      debugPrint('Gönderi paylaşma hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.'),
