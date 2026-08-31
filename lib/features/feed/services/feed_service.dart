@@ -25,22 +25,15 @@ class FeedService extends FirestoreService {
       throw ArgumentError('Gönderi kimliği (id) boş olamaz.');
     }
 
-    final now = Timestamp.fromDate(DateTime.now());
-    final createdAt =
-        post.createdAt != null ? Timestamp.fromDate(post.createdAt!) : now;
-    final updatedAt =
-        post.updatedAt != null ? Timestamp.fromDate(post.updatedAt!) : now;
+    final createdAt = post.createdAt != null
+        ? Timestamp.fromDate(post.createdAt!)
+        : FieldValue.serverTimestamp();
+    final updatedAt = post.updatedAt != null
+        ? Timestamp.fromDate(post.updatedAt!)
+        : FieldValue.serverTimestamp();
     final postData = post.toMap()
-      ..update(
-        'createdAt',
-        (_) => createdAt,
-        ifAbsent: () => createdAt,
-      )
-      ..update(
-        'updatedAt',
-        (_) => updatedAt,
-        ifAbsent: () => updatedAt,
-      );
+      ..['createdAt'] = createdAt
+      ..['updatedAt'] = updatedAt;
 
     await collection.doc(post.id).set(postData);
   }
@@ -81,7 +74,7 @@ class FeedService extends FirestoreService {
 
     await collection.doc(postId).update({
       'status': status.value,
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 }
