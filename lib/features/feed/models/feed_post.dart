@@ -12,7 +12,9 @@ class FeedPost {
   final String authorName;
   final String? authorPhotoUrl;
   final String universityId;
+  final String universityName;
   final String? departmentId;
+  final String? departmentName;
   final PostType type;
   final String text;
   final List<String> imageUrls;
@@ -28,7 +30,9 @@ class FeedPost {
     required this.authorName,
     this.authorPhotoUrl,
     required this.universityId,
+    required this.universityName,
     this.departmentId,
+    this.departmentName,
     this.type = PostType.general,
     this.text = '',
     this.imageUrls = const [],
@@ -47,7 +51,9 @@ class FeedPost {
       authorName: map['authorName'] as String? ?? '',
       authorPhotoUrl: map['authorPhotoUrl'] as String?,
       universityId: map['universityId'] as String? ?? '',
+      universityName: map['universityName'] as String? ?? '',
       departmentId: map['departmentId'] as String?,
+      departmentName: map['departmentName'] as String?,
       type: PostType.fromString(map['type'] as String?),
       text: map['text'] as String? ?? '',
       imageUrls: (map['imageUrls'] as List<dynamic>?)
@@ -70,7 +76,9 @@ class FeedPost {
       'authorName': authorName,
       'authorPhotoUrl': authorPhotoUrl,
       'universityId': universityId,
+      'universityName': universityName,
       'departmentId': departmentId,
+      'departmentName': departmentName,
       'type': type.value,
       'text': text,
       'imageUrls': imageUrls,
@@ -91,7 +99,9 @@ class FeedPost {
     String? authorName,
     Object? authorPhotoUrl = _sentinel,
     String? universityId,
+    String? universityName,
     Object? departmentId = _sentinel,
+    Object? departmentName = _sentinel,
     PostType? type,
     String? text,
     List<String>? imageUrls,
@@ -109,9 +119,13 @@ class FeedPost {
           ? this.authorPhotoUrl
           : (authorPhotoUrl as String?),
       universityId: universityId ?? this.universityId,
+      universityName: universityName ?? this.universityName,
       departmentId: identical(departmentId, _sentinel)
           ? this.departmentId
           : (departmentId as String?),
+      departmentName: identical(departmentName, _sentinel)
+          ? this.departmentName
+          : (departmentName as String?),
       type: type ?? this.type,
       text: text ?? this.text,
       imageUrls: imageUrls ?? this.imageUrls,
