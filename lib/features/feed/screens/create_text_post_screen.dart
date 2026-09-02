@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
 import '../../profile/services/profile_service.dart';
@@ -14,6 +12,7 @@ import '../models/post_status.dart';
 import '../models/post_type.dart';
 import '../services/feed_service.dart';
 import '../widgets/post_image_picker.dart';
+import '../widgets/post_type_selector.dart';
 
 /// Kullanıcının yeni metin ve görsel gönderisi oluşturabileceği form ekranı.
 ///
@@ -101,8 +100,6 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
 
     try {
       final uid = currentUser.uid;
-
-      // Kullanıcı profil bilgilerini (snapshot) getir
       final profile = await _profileService.getUserProfile(uid);
 
       final authorName = (profile?.fullName.trim().isNotEmpty ?? false)
@@ -156,7 +153,6 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
         ),
       );
 
-      // Başarılı kayıt sonrası akış ekranına yönlendir
       if (widget.onPostCreated != null) {
         widget.onPostCreated!();
       } else if (Navigator.canPop(context)) {
@@ -168,7 +164,9 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.'),
+          content: Text(
+            'Gönderi paylaşılırken bir hata oluştu. Lütfen tekrar deneyin.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -189,12 +187,13 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Post Türü Seçici
-              _buildTypeSelector(),
-
+              PostTypeSelector(
+                selectedType: _selectedType,
+                onChanged: _isLoading
+                    ? (_) {}
+                    : (type) => setState(() => _selectedType = type),
+              ),
               const SizedBox(height: AppSpacing.xl),
-
-              // Metin Giriş Alanı
               AppTextField(
                 hint: 'Ne düşünüyorsun?',
                 controller: _textController,
@@ -203,10 +202,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
                 textInputAction: TextInputAction.newline,
                 keyboardType: TextInputType.multiline,
               ),
-
               const SizedBox(height: AppSpacing.lg),
-
-              // Görsel Seçici ve Önizleme
               PostImagePicker(
                 selectedImage: _selectedImage,
                 enabled: !_isLoading,
@@ -214,10 +210,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
                   setState(() => _selectedImage = image);
                 },
               ),
-
               const SizedBox(height: AppSpacing.xxl),
-
-              // Paylaş Butonu
               PrimaryButton(
                 text: 'Paylaş',
                 isLoading: _isLoading,
@@ -229,60 +222,5 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildTypeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Post Türü',
-          style: AppTextStyles.labelMedium,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          children: PostType.values.map((type) {
-            final isSelected = type == _selectedType;
-            return ChoiceChip(
-              label: Text(_labelForType(type)),
-              selected: isSelected,
-              onSelected: _isLoading
-                  ? null
-                  : (selected) {
-                      if (selected) {
-                        setState(() => _selectedType = type);
-                      }
-                    },
-              selectedColor: AppColors.primaryIndigo,
-              backgroundColor: AppColors.surface,
-              labelStyle: AppTextStyles.labelLarge.copyWith(
-                color: isSelected ? Colors.white : AppColors.textPrimary,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                side: BorderSide(
-                  color: isSelected
-                      ? AppColors.primaryIndigo
-                      : AppColors.border,
-                ),
-              ),
-              showCheckmark: false,
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  String _labelForType(PostType type) {
-    switch (type) {
-      case PostType.general:
-        return 'Genel';
-      case PostType.campus:
-        return 'Kampüs';
-      case PostType.announcement:
-        return 'Duyuru';
-    }
   }
 }
