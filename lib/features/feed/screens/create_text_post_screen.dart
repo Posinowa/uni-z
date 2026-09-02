@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -10,11 +11,12 @@ import '../models/feed_post.dart';
 import '../models/post_status.dart';
 import '../models/post_type.dart';
 import '../services/feed_service.dart';
+import '../widgets/post_image_picker.dart';
 import '../widgets/post_type_selector.dart';
 
-/// Kullanıcının yeni metin gönderisi oluşturabileceği form ekranı.
+/// Kullanıcının yeni metin ve görsel gönderisi oluşturabileceği form ekranı.
 ///
-/// Post türü (Genel, Kampüs, Duyuru) seçimi ve metin içeriği alır.
+/// Post türü (Genel, Kampüs, Duyuru) seçimi, metin içeriği ve görsel seçimi içerir.
 /// Paylaşım sırasında mevcut kullanıcının profil bilgilerini snapshot olarak
 /// gönderiye ekler ve Firestore `posts` koleksiyonuna kaydeder.
 class CreateTextPostScreen extends StatefulWidget {
@@ -47,6 +49,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
   final TextEditingController _textController = TextEditingController();
 
   PostType _selectedType = PostType.general;
+  XFile? _selectedImage;
   bool _hasText = false;
   bool _isLoading = false;
 
@@ -74,10 +77,13 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
     }
   }
 
+  /// Paylaşım butonunun aktif olup olmadığını belirler.
+  bool get _canSubmit => (_hasText || _selectedImage != null) && !_isLoading;
+
   /// Gönderiyi Firestore'a kaydeder.
   Future<void> _submitPost() async {
     final text = _textController.text.trim();
-    if (text.isEmpty || _isLoading) return;
+    if (!_canSubmit) return;
 
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -94,7 +100,6 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
 
     try {
       final uid = currentUser.uid;
-
       final profile = await _profileService.getUserProfile(uid);
 
       final authorName = (profile?.fullName.trim().isNotEmpty ?? false)
@@ -137,6 +142,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
       setState(() {
         _isLoading = false;
         _hasText = false;
+        _selectedImage = null;
         _selectedType = PostType.general;
       });
 
@@ -191,17 +197,25 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
               AppTextField(
                 hint: 'Ne düşünüyorsun?',
                 controller: _textController,
-                maxLines: 6,
+                maxLines: 5,
                 enabled: !_isLoading,
                 textInputAction: TextInputAction.newline,
                 keyboardType: TextInputType.multiline,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              PostImagePicker(
+                selectedImage: _selectedImage,
+                enabled: !_isLoading,
+                onImageChanged: (image) {
+                  setState(() => _selectedImage = image);
+                },
               ),
               const SizedBox(height: AppSpacing.xxl),
               PrimaryButton(
                 text: 'Paylaş',
                 isLoading: _isLoading,
-                isDisabled: !_hasText || _isLoading,
-                onPressed: (_hasText && !_isLoading) ? _submitPost : null,
+                isDisabled: !_canSubmit,
+                onPressed: _canSubmit ? _submitPost : null,
               ),
             ],
           ),
