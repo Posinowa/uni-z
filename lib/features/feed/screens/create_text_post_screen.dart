@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/mock_storage_service.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
 import '../../profile/services/profile_service.dart';
@@ -17,22 +21,22 @@ import '../widgets/post_type_selector.dart';
 /// Kullanıcının yeni metin ve görsel gönderisi oluşturabileceği form ekranı.
 ///
 /// Post türü (Genel, Kampüs, Duyuru) seçimi, metin içeriği ve görsel seçimi içerir.
-/// Paylaşım sırasında mevcut kullanıcının profil bilgilerini snapshot olarak
-/// gönderiye ekler ve Firestore `posts` koleksiyonuna kaydeder.
+/// Görsel seçildiğinde [StorageService.uploadFile] çağrısı ile görsel yüklenir
+/// ve dönen URL, Firestore post kaydının [imageUrls] alanına eklenir.
 class CreateTextPostScreen extends StatefulWidget {
   /// Gönderi başarıyla oluşturulduğunda çağrılacak opsiyonel geri bildirim fonksiyonu.
-  /// Shell ekranında sekmeyi akışa (Feed) çevirmek için kullanılır.
   final VoidCallback? onPostCreated;
 
-  /// Test edilebilirlik için opsiyonel servis parametreleri.
   final FeedService? feedService;
   final ProfileService? profileService;
+  final StorageService? storageService;
   final FirebaseAuth? authInstance;
 
   const CreateTextPostScreen({
     this.onPostCreated,
     this.feedService,
     this.profileService,
+    this.storageService,
     this.authInstance,
     super.key,
   });
@@ -44,6 +48,7 @@ class CreateTextPostScreen extends StatefulWidget {
 class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
   late final FeedService _feedService;
   late final ProfileService _profileService;
+  late final StorageService _storageService;
   late final FirebaseAuth _auth;
 
   final TextEditingController _textController = TextEditingController();
@@ -58,6 +63,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
     super.initState();
     _feedService = widget.feedService ?? FeedService();
     _profileService = widget.profileService ?? ProfileService();
+    _storageService = widget.storageService ?? MockStorageService();
     _auth = widget.authInstance ?? FirebaseAuth.instance;
 
     _textController.addListener(_onTextChanged);
@@ -77,10 +83,8 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
     }
   }
 
-  /// Paylaşım butonunun aktif olup olmadığını belirler.
   bool get _canSubmit => (_hasText || _selectedImage != null) && !_isLoading;
 
-  /// Gönderiyi Firestore'a kaydeder.
   Future<void> _submitPost() async {
     final text = _textController.text.trim();
     if (!_canSubmit) return;
@@ -114,6 +118,19 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
       final departmentName = profile?.departmentName;
       final authorPhotoUrl = profile?.profileImageUrl ?? currentUser.photoURL;
 
+      final imageUrls = <String>[];
+      if (_selectedImage != null) {
+        final imageFile = File(_selectedImage!.path);
+        final fileName =
+            'post_${uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final uploadedUrl = await _storageService.uploadFile(
+          file: imageFile,
+          folder: 'post_images',
+          fileName: fileName,
+        );
+        imageUrls.add(uploadedUrl);
+      }
+
       final now = DateTime.now();
       final post = FeedPost(
         id: '',
@@ -126,7 +143,7 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
         departmentName: departmentName,
         type: _selectedType,
         text: text,
-        imageUrls: const [],
+        imageUrls: imageUrls,
         likeCount: 0,
         reportCount: 0,
         status: PostStatus.published,
