@@ -16,14 +16,13 @@ class FeedService extends FirestoreService {
   FeedService({super.firestoreInstance})
       : super(FirestoreCollections.posts);
 
-  /// Yeni gönderiyi Firestore `posts` koleksiyonuna kaydeder.
+  /// Yeni bir metin veya görsel gönderiyi Firestore `posts` koleksiyonuna kaydeder.
   ///
-  /// [post] nesnesinin `id` değeri belge kimliği (document ID) olarak kullanılır.
-  /// Boş `id` durumunda [ArgumentError] fırlatır.
-  Future<void> createPost(FeedPost post) async {
-    if (post.id.trim().isEmpty) {
-      throw ArgumentError('Gönderi kimliği (id) boş olamaz.');
-    }
+  /// Gönderi ID'si boşsa Firestore tarafından yeni bir belge kimliği atanır.
+  /// İşlem başarılı olursa oluşturulan gönderinin kimliğini (ID) döner.
+  Future<String> createPost(FeedPost post) async {
+    final docRef =
+        post.id.trim().isEmpty ? collection.doc() : collection.doc(post.id);
 
     final createdAt = post.createdAt != null
         ? Timestamp.fromDate(post.createdAt!)
@@ -31,11 +30,13 @@ class FeedService extends FirestoreService {
     final updatedAt = post.updatedAt != null
         ? Timestamp.fromDate(post.updatedAt!)
         : FieldValue.serverTimestamp();
-    final postData = post.toMap()
+
+    final postData = post.copyWith(id: docRef.id).toMap()
       ..['createdAt'] = createdAt
       ..['updatedAt'] = updatedAt;
 
-    await collection.doc(post.id).set(postData);
+    await docRef.set(postData);
+    return docRef.id;
   }
 
   /// Yayında olan gönderileri `createdAt` alanına göre azalan sırada dinler.

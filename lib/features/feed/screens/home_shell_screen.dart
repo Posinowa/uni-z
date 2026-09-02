@@ -26,13 +26,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   int _currentIndex = 0;
 
   /// Her sekmeye karşılık gelen ekranlar listesi.
-  final List<Widget> _screens = const [
-    FeedScreen(),
-    CoursesScreen(),
-    CreateTextPostScreen(),
-    EventsScreen(),
-    ProfileScreen(),
-  ];
+  List<Widget> get _screens => [
+        const FeedScreen(),
+        const CoursesScreen(),
+        CreateTextPostScreen(
+          onPostCreated: () {
+            setState(() => _currentIndex = 0);
+          },
+        ),
+        const EventsScreen(),
+        const ProfileScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
