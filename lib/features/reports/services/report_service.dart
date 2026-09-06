@@ -20,9 +20,21 @@ class ReportService extends FirestoreService {
   ///
   /// - [report] nesnesinin `id` alanı Firestore tarafından otomatik atanır;
   ///   bu nedenle boş string (`''`) geçilmelidir.
+  /// - [report.reportedBy] veya [report.targetId] boşsa [ArgumentError] fırlatır.
   /// - Aynı kullanıcı aynı içeriği zaten raporlamışsa [StateError] fırlatır.
   /// - İşlem sırasında hata oluşursa [FirebaseException] fırlatır.
   Future<void> createReport(ReportModel report) async {
+    // Auth guard: oturumsuz veya eksik veriyle rapor oluşturulamaz.
+    if (report.reportedBy.trim().isEmpty) {
+      throw ArgumentError('reportedBy boş olamaz. Kullanıcı giriş yapmış olmalıdır.');
+    }
+    if (report.targetId.trim().isEmpty) {
+      throw ArgumentError('targetId boş olamaz.');
+    }
+    if (report.reason.trim().isEmpty) {
+      throw ArgumentError('reason boş olamaz.');
+    }
+
     // Tekrar raporlamayı önlemek için önce duplicate kontrolü yapılır.
     final alreadyReported = await hasUserReported(
       targetType: report.targetType.value,
@@ -36,8 +48,12 @@ class ReportService extends FirestoreService {
       );
     }
 
+    final reportToSave = report.createdAt == null
+        ? report.copyWith(createdAt: DateTime.now())
+        : report;
+
     // Firestore'un otomatik ID üretmesi için add() kullanılır.
-    await collection.add(report.toMap());
+    await collection.add(reportToSave.toMap());
   }
 
   /// Belirtilen kullanıcının ilgili içeriği daha önce raporlayıp
