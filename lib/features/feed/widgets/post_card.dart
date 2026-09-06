@@ -4,19 +4,24 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../models/feed_post.dart';
+import '../../reports/widgets/report_bottom_sheet.dart';
 
 /// Ana akışta gösterilecek gönderi kartı bileşeni.
 ///
 /// [FeedPost] modelini alır ve kartı oluşturur.
-/// Beğeni ve rapor butonları görsel olarak bulunur ancak
-/// bu issue kapsamında işlevsel değildir.
+/// Raporlama butonu oturum açmış kullanıcılar için aktiftir.
 class PostCard extends StatelessWidget {
   /// Gösterilecek gönderi verisi.
   final FeedPost post;
 
+  /// Oturum açmış kullanıcının kimliği.
+  /// Boş veya null ise rapor butonu gösterilmez.
+  final String? currentUserId;
+
   const PostCard({
     super.key,
     required this.post,
+    this.currentUserId,
   });
 
   @override
@@ -58,7 +63,11 @@ class PostCard extends StatelessWidget {
               ),
 
             // ─── Alt Aksiyon Çubuğu ─────────────────────────────
-            _ActionBar(likeCount: post.likeCount),
+            _ActionBar(
+              postId: post.id,
+              likeCount: post.likeCount,
+              currentUserId: currentUserId,
+            ),
           ],
         ),
       ),
@@ -244,14 +253,26 @@ class _PostImage extends StatelessWidget {
 }
 
 /// Beğeni sayısı ve rapor butonunu gösterir.
-/// Butonlar görsel olarak bulunur ancak tıklama işlevi yoktur.
+///
+/// [currentUserId] boş veya null ise rapor butonu gizlenir.
 class _ActionBar extends StatelessWidget {
+  final String postId;
   final int likeCount;
 
-  const _ActionBar({required this.likeCount});
+  /// Oturum açmış kullanıcının kimliği. Boşsa rapor butonu gösterilmez.
+  final String? currentUserId;
+
+  const _ActionBar({
+    required this.postId,
+    required this.likeCount,
+    this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final canReport =
+        currentUserId != null && currentUserId!.trim().isNotEmpty;
+
     return Row(
       children: [
         // Beğeni butonu + sayısı
@@ -265,13 +286,14 @@ class _ActionBar extends StatelessWidget {
 
         const Spacer(),
 
-        // Rapor butonu
-        _ActionButton(
-          icon: Icons.flag_outlined,
-          onPressed: () {
-            // Raporlama bu issue kapsamında çalışmayacak.
-          },
-        ),
+        // Rapor butonu — sadece oturum açmış kullanıcıya görünür.
+        if (canReport)
+          _ActionButton(
+            icon: Icons.flag_outlined,
+            onPressed: () {
+              ReportBottomSheet.show(context, postId: postId);
+            },
+          ),
       ],
     );
   }
