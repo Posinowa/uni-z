@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/report_model.dart';
+import '../models/report_reason.dart';
 import '../models/report_target_type.dart';
 import '../services/report_service.dart';
 
@@ -59,8 +60,8 @@ class ReportBottomSheet extends StatefulWidget {
 class _ReportBottomSheetState extends State<ReportBottomSheet> {
   late final ReportService _reportService;
 
-  /// Seçili rapor sebebi. Kullanıcı seçmeden submit edemez.
-  String? _selectedReason;
+  /// Seçili rapor sebebi enum'ı. Kullanıcı seçmeden submit edemez.
+  ReportReason? _selectedReason;
 
   bool _isLoading = false;
 
@@ -70,19 +71,12 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
     _reportService = widget.reportService ?? ReportService();
   }
 
-  // Rapor sebepleri listesi.
-  static const List<String> _reasons = [
-    'Uygunsuz içerik',
-    'Spam veya yanıltıcı',
-    'Nefret söylemi',
-    'Taciz veya zorbalık',
-    'Telif hakkı ihlali',
-    'Diğer',
-  ];
+  // Rapor sebepleri enum listesi.
+  static const List<ReportReason> _reasons = ReportReason.values;
 
   Future<void> _submit() async {
-    final reason = _selectedReason;
-    if (reason == null) return;
+    final selectedReason = _selectedReason;
+    if (selectedReason == null) return;
 
     final currentUserId =
         context.read<AuthProvider>().currentUser?.uid ?? '';
@@ -101,7 +95,7 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
         targetType: ReportTargetType.post,
         targetId: widget.postId,
         reportedBy: currentUserId,
-        reason: reason,
+        reason: selectedReason.value,
         createdAt: DateTime.now(),
       );
 
@@ -169,8 +163,8 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
           const Divider(height: 1),
 
           // ─── Sebep Listesi ────────────────────────────────────
-          RadioGroup<String>(
-            groupValue: _selectedReason ?? '',
+          RadioGroup<ReportReason>(
+            groupValue: _selectedReason,
             onChanged: (value) {
               if (value != null) setState(() => _selectedReason = value);
             },
@@ -180,8 +174,8 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
               itemCount: _reasons.length,
               itemBuilder: (context, index) {
                 final reason = _reasons[index];
-                return RadioListTile<String>(
-                  title: Text(reason),
+                return RadioListTile<ReportReason>(
+                  title: Text(reason.label),
                   value: reason,
                   activeColor: AppColors.primaryIndigo,
                 );
