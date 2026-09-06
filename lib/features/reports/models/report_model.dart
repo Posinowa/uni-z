@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'report_reason.dart';
 import 'report_status.dart';
 import 'report_target_type.dart';
 
@@ -31,6 +32,9 @@ class ReportModel {
     this.reviewedAt,
   });
 
+  /// [reason] alanının [ReportReason] enum karşılığı.
+  ReportReason get reasonEnum => ReportReason.fromString(reason);
+
   /// Map (Firestore belge verisi) nesnesinden [ReportModel] oluşturur.
   factory ReportModel.fromMap(Map<String, dynamic> map, {String? id}) {
     return ReportModel(
@@ -48,9 +52,12 @@ class ReportModel {
   }
 
   /// [ReportModel] nesnesini Firestore'a kaydedilecek Map formatına dönüştürür.
+  ///
+  /// `id` alanı toMap çıktısına dahil edilmez; böylece Firestore doküman
+  /// oluşturulurken doküman gövdesinde boş id alanı kalmaz ve doküman kimliğiyle
+  /// tutarlılık sağlanır.
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'targetType': targetType.value,
       'targetId': targetId,
       'reportedBy': reportedBy,

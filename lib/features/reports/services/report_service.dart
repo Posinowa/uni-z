@@ -18,36 +18,52 @@ class ReportService extends FirestoreService {
 
   /// Yeni bir raporu Firestore `reports` koleksiyonuna kaydeder.
   ///
-  /// - [report] nesnesinin `id` alanı Firestore tarafından otomatik atanır;
-  ///   bu nedenle boş string (`''`) geçilmelidir.
+  /// Deterministic doc ID kullanır: `{userId}_{targetType}_{targetId}`.
+  /// Bu sayede aynı kullanıcı-hedef çifti için concurrent isteklerde bile
+  /// tek kayıt oluşur (idempotent).
+  ///
+  /// - [report.reportedBy] veya [report.targetId] boşsa [ArgumentError] fırlatır.
   /// - Aynı kullanıcı aynı içeriği zaten raporlamışsa [StateError] fırlatır.
   /// - İşlem sırasında hata oluşursa [FirebaseException] fırlatır.
   Future<void> createReport(ReportModel report) async {
-    // Tekrar raporlamayı önlemek için önce duplicate kontrolü yapılır.
-    final alreadyReported = await hasUserReported(
+    // Auth guard: oturumsuz veya eksik veriyle rapor oluşturulamaz.
+    if (report.reportedBy.trim().isEmpty) {
+      throw ArgumentError('reportedBy boş olamaz. Kullanıcı giriş yapmış olmalıdır.');
+    }
+    if (report.targetId.trim().isEmpty) {
+      throw ArgumentError('targetId boş olamaz.');
+    }
+    if (report.reason.trim().isEmpty) {
+      throw ArgumentError('reason boş olamaz.');
+    }
+
+    final docId = _buildDocId(
+      userId: report.reportedBy,
       targetType: report.targetType.value,
       targetId: report.targetId,
-      userId: report.reportedBy,
     );
 
-    if (alreadyReported) {
+    // Aynı kullanıcı-hedef çifti daha önce raporlanmış mı kontrol et.
+    final existingDoc = await collection.doc(docId).get();
+    if (existingDoc.exists) {
       throw StateError(
         'Bu içerik zaten raporlandı. Aynı içerik tekrar raporlanamaz.',
       );
     }
 
-    // Firestore'un otomatik ID üretmesi için add() kullanılır.
-    await collection.add(report.toMap());
+    final reportToSave = report.createdAt == null
+        ? report.copyWith(createdAt: DateTime.now())
+        : report;
+
+    // Deterministic ID ile set — concurrent isteklerde idempotent.
+    await collection.doc(docId).set(reportToSave.toMap());
   }
 
   /// Belirtilen kullanıcının ilgili içeriği daha önce raporlayıp
   /// raporlamadığını kontrol eder.
   ///
-  /// - [targetType] içerik türü (örn. `'post'`, `'material'`, `'event'`, `'user'`).
-  /// - [targetId] raporlanan içeriğin Firestore belge kimliği.
-  /// - [userId] raporu oluşturan kullanıcının kimliği.
-  /// - Herhangi bir parametre boşsa `false` döner.
-  /// - İşlem sırasında hata oluşursa [FirebaseException] fırlatır.
+  /// Deterministic doc ID ile tek document okuma yapar.
+  /// Herhangi bir parametre boşsa `false` döner.
   Future<bool> hasUserReported({
     required String targetType,
     required String targetId,
@@ -59,13 +75,25 @@ class ReportService extends FirestoreService {
       return false;
     }
 
-    final querySnapshot = await collection
-        .where('targetType', isEqualTo: targetType)
-        .where('targetId', isEqualTo: targetId)
-        .where('reportedBy', isEqualTo: userId)
-        .limit(1)
-        .get();
+    final docId = _buildDocId(
+      userId: userId,
+      targetType: targetType,
+      targetId: targetId,
+    );
 
-    return querySnapshot.docs.isNotEmpty;
+    final doc = await collection.doc(docId).get();
+    return doc.exists;
+  }
+
+  /// Deterministic rapor belgesi kimliği oluşturur.
+  ///
+  /// Format: `{userId}_{targetType}_{targetId}`
+  /// Bu sayede aynı kullanıcı-hedef çifti için her zaman aynı ID üretilir.
+  String _buildDocId({
+    required String userId,
+    required String targetType,
+    required String targetId,
+  }) {
+    return '${userId}_${targetType}_$targetId';
   }
 }
