@@ -1,10 +1,14 @@
+import 'dart:developer' as developer;
+
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler (üst düzey fonksiyon olmalıdır).
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('Arka planda bildirim alındı: ${message.messageId}');
+  developer.log(
+    'Arka planda bildirim alındı: ${message.messageId}',
+    name: 'PushNotification',
+  );
 }
 
 /// Firebase Cloud Messaging (Push Notification) servisi.
@@ -25,27 +29,40 @@ class PushNotificationService {
         provisional: false,
       );
 
-      debugPrint('🔔 Bildirim İzni Durumu: ${settings.authorizationStatus}');
+      developer.log(
+        'Bildirim İzni Durumu: ${settings.authorizationStatus}',
+        name: 'PushNotification',
+      );
 
       // 2. Arka plan mesaj dinleyicisini tanımla
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       // 3. Cihazın FCM Test Token'ını al ve terminalde belirgin şekilde yazdır
       final token = await _fcm.getToken();
-      debugPrint('\n======================================================');
-      debugPrint('🔥 [FCM TEST TOKEN] Firebase Console için Token:');
-      debugPrint(token ?? 'Token alınamadı');
-      debugPrint('======================================================\n');
+      developer.log(
+        '\n======================================================\n'
+        '[FCM TEST TOKEN] Firebase Console için Token:\n'
+        '${token ?? "Token alınamadı"}\n'
+        '======================================================',
+        name: 'PushNotification',
+      );
 
       // 4. Genel duyurular için 'all_users' konusuna abone ol
       await _fcm.subscribeToTopic('all_users');
 
       // 5. Uygulama ön plandayken gelen mesajları dinle
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('🔔 Ön planda bildirim geldi: ${message.notification?.title} - ${message.notification?.body}');
+        developer.log(
+          'Ön planda bildirim geldi: ${message.notification?.title} - ${message.notification?.body}',
+          name: 'PushNotification',
+        );
       });
     } catch (e) {
-      debugPrint('Push Notification başlatma hatası: $e');
+      developer.log(
+        'Push Notification başlatma hatası: $e',
+        name: 'PushNotification',
+        level: 1000,
+      );
     }
   }
 }
