@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../shared/widgets/states/states.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../profile/widgets/logout_button.dart';
 import '../models/feed_post.dart';
 import '../services/feed_service.dart';
@@ -83,12 +85,18 @@ class _FeedScreenState extends State<FeedScreen> {
           }
 
           // ─── Gönderi Listesi ──────────────────────────────────
+          final currentUserId =
+              context.watch<AuthProvider>().currentUser?.uid;
+
           return ListView.builder(
             padding: const EdgeInsets.only(top: 8, bottom: 16),
             itemCount: posts.length,
             itemBuilder: (context, index) {
               final post = posts[index];
-              return PostCard(post: post);
+              return PostCard(
+                post: post,
+                currentUserId: currentUserId,
+              );
             },
           );
         },
