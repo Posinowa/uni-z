@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'course_detail_screen.dart';
 
 /// Geçici dersler ekranı.
 ///
@@ -37,6 +38,25 @@ class CoursesScreen extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  CourseDetailScreen.route(),
+                );
+              },
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Örnek Ders Detayını Gör'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryIndigo,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+              ),
             ),
           ],
         ),
