@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Rapor sebebini tanımlayan enum.
 ///
 /// Firestore `reports` koleksiyonundaki `reason` alanına kaydedilecek
@@ -23,7 +21,7 @@ enum ReportReason {
 
   /// String code veya label değerinden [ReportReason] enum nesnesine dönüştürür.
   ///
-  /// Bilinmeyen değerlerde [debugPrint] ile uyarır ve [ReportReason.other] döner.
+  /// Bilinmeyen değerlerde [ReportReason.other] döner.
   static ReportReason fromString(String? val) {
     if (val == null || val.isEmpty) {
       return ReportReason.other;
@@ -33,9 +31,6 @@ enum ReportReason {
         return reason;
       }
     }
-    debugPrint(
-      'ReportReason.fromString: Tanınmayan sebep "$val", varsayılan other kullanıldı.',
-    );
     return ReportReason.other;
   }
 }
