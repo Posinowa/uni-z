@@ -7,6 +7,7 @@ import '../models/event_model.dart';
 import '../models/event_status.dart';
 import '../services/event_service.dart';
 import '../widgets/event_card.dart';
+import 'create_event_screen.dart';
 import 'event_detail_screen.dart';
 
 /// Kampüs etkinliklerinin listelendiği ana ekran.
@@ -85,6 +86,16 @@ class _EventsScreenState extends State<EventsScreen> {
               onPressed: () => setState(() => _showDemoEvents = true),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('create_event_fab'),
+        onPressed: () {
+          Navigator.push(context, CreateEventScreen.route());
+        },
+        backgroundColor: AppColors.categoryEvents,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Etkinlik Oluştur'),
       ),
       body: _showDemoEvents
           ? _buildEventList(_getSampleEvents())
