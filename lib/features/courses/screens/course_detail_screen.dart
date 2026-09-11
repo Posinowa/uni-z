@@ -7,6 +7,7 @@ import '../../../shared/widgets/buttons/primary_button.dart';
 import '../widgets/course_detail_args.dart';
 import '../widgets/course_info_card.dart';
 import '../widgets/course_materials_tab.dart';
+import 'upload_material_screen.dart';
 
 /// Ders Detay Ekranı.
 ///
@@ -87,21 +88,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 
   /// Materyal yükle butonuna tıklandığında çalışacak işlem.
-  /// (Gerçek dosya yükleme ayrı issue'da geliştirilecektir.)
+  /// Kullanıcıyı [UploadMaterialScreen] ekranına yönlendirir.
   void _onUploadMaterialPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Materyal yükleme formu yakında eklenecektir.'),
-        backgroundColor: AppColors.primaryIndigo,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Tamam',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
+    Navigator.push(
+      context,
+      UploadMaterialScreen.route(courseArgs: _resolvedArgs),
     );
   }
 
