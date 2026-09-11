@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -6,6 +7,9 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../models/event_model.dart';
 import '../widgets/event_detail_info_tile.dart';
+import '../../reports/models/report_model.dart';
+import '../../reports/models/report_target_type.dart';
+import '../../reports/services/report_service.dart';
 
 /// Kampüs etkinliğinin tüm detaylarının görüntülendiği ekran.
 ///
@@ -22,7 +26,7 @@ import '../widgets/event_detail_info_tile.dart';
 /// Kapsam dışı:
 /// - Katılacağım özelliği yoktur.
 /// - Harita entegrasyonu yoktur.
-class EventDetailScreen extends StatelessWidget {
+class EventDetailScreen extends StatefulWidget {
   /// Sayfa route ismi sabiti.
   static const String routeName = '/event-detail';
 
@@ -32,10 +36,16 @@ class EventDetailScreen extends StatelessWidget {
   /// Rapor butonuna tıklandığında çalıştırılacak opsiyonel callback (test ve özel yönetim için).
   final void Function(BuildContext context, EventModel event)? onReport;
 
+  /// Test edilebilirlik için opsiyonel servis ve auth enjeksiyonu.
+  final ReportService? reportService;
+  final FirebaseAuth? authInstance;
+
   const EventDetailScreen({
     super.key,
     this.event,
     this.onReport,
+    this.reportService,
+    this.authInstance,
   });
 
   /// [EventDetailScreen] sayfasına yönlendirme sağlayan standart [MaterialPageRoute] üretici.
@@ -53,9 +63,24 @@ class EventDetailScreen extends StatelessWidget {
   }
 
   @override
+  State<EventDetailScreen> createState() => _EventDetailScreenState();
+}
+
+class _EventDetailScreenState extends State<EventDetailScreen> {
+  late final ReportService _reportService;
+  late final FirebaseAuth _auth;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportService = widget.reportService ?? ReportService();
+    _auth = widget.authInstance ?? FirebaseAuth.instance;
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Route argümanı veya doğrudan constructor parametresinden etkinlik modelini al
-    final currentEvent = event ??
+    final currentEvent = widget.event ??
         (ModalRoute.of(context)?.settings.arguments as EventModel?);
 
     if (currentEvent == null) {
@@ -241,8 +266,8 @@ class EventDetailScreen extends StatelessWidget {
 
   /// Raporlama akışını tetikler.
   void _handleReport(BuildContext context, EventModel currentEvent) {
-    if (onReport != null) {
-      onReport!(context, currentEvent);
+    if (widget.onReport != null) {
+      widget.onReport!(context, currentEvent);
       return;
     }
 
@@ -250,6 +275,7 @@ class EventDetailScreen extends StatelessWidget {
   }
 
   /// PROJECT_CONTEXT.md Bölüm 18'de belirtilen rapor nedenlerini listeleyen modal.
+  /// Sebep seçildiğinde Firestore `reports` koleksiyonuna `targetType: event` olarak kaydeder.
   void _showReportBottomSheet(BuildContext context, EventModel currentEvent) {
     const reportReasons = [
       'Uygunsuz içerik',
@@ -267,74 +293,139 @@ class EventDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.lg,
-              horizontal: AppSpacing.md,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.flag_outlined,
-                        color: AppColors.error,
-                        size: 22,
+        // Bottom sheet içi loading state'ini yönetmek için StatefulBuilder kullanılır.
+        // Bu sayede sebep seçildiğinde çift tıklama engellenir.
+        var isSubmitting = false;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.lg,
+                  horizontal: AppSpacing.md,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.flag_outlined,
+                            color: AppColors.error,
+                            size: 22,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Etkinliği Rapor Et',
+                            style: AppTextStyles.titleMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Etkinliği Rapor Et',
-                        style: AppTextStyles.titleMedium.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: Text(
+                        'Lütfen bu etkinliği neden bildirmek istediğinizi seçin:',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: Text(
-                    'Lütfen bu etkinliği neden bildirmek istediğinizi seçin:',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
                     ),
-                  ),
-                ),
-                const Divider(height: AppSpacing.xl),
-                ...reportReasons.map(
-                  (reason) => ListTile(
-                    dense: true,
-                    title: Text(
-                      reason,
-                      style: AppTextStyles.bodyMedium,
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
-                    onTap: () {
-                      Navigator.pop(bottomSheetContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Raporunuz alındı: "$reason"'),
-                          backgroundColor: AppColors.categoryReport,
-                          duration: const Duration(seconds: 2),
+                    const Divider(height: AppSpacing.xl),
+                    ...reportReasons.map(
+                      (reason) => ListTile(
+                        dense: true,
+                        enabled: !isSubmitting,
+                        title: Text(
+                          reason,
+                          style: AppTextStyles.bodyMedium,
                         ),
-                      );
-                    },
-                  ),
+                        trailing: isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.categoryReport,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.chevron_right,
+                                size: 20,
+                                color: AppColors.textSecondary,
+                              ),
+                        onTap: () async {
+                          // Kullanıcı giriş yapmamışsa işlem yapma
+                          final uid = _auth.currentUser?.uid;
+                          if (uid == null) return;
+
+                          setSheetState(() => isSubmitting = true);
+
+                          try {
+                            final report = ReportModel(
+                              id: '',
+                              targetType: ReportTargetType.event,
+                              targetId: currentEvent.id,
+                              reportedBy: uid,
+                              reason: reason,
+                            );
+
+                            await _reportService.createReport(report);
+
+                            if (!context.mounted) return;
+                            Navigator.pop(bottomSheetContext);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('Raporunuz alındı. Teşekkür ederiz.'),
+                                backgroundColor: AppColors.categoryReport,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } on StateError {
+                            // Aynı kullanıcı aynı etkinliği zaten raporlamış
+                            if (!context.mounted) return;
+                            Navigator.pop(bottomSheetContext);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Bu etkinliği zaten raporladınız.',
+                                ),
+                                backgroundColor: AppColors.warning,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            Navigator.pop(bottomSheetContext);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Bir hata oluştu: $e'),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
