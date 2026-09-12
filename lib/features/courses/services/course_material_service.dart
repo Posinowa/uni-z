@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_collections.dart';
 
-/// Ders materyali kaydetme işlemlerini yöneten servis sınıfı.
+/// Ders materyali işlemlerini yöneten servis sınıfı.
 ///
 /// Yüklenen materyal, `status: pending` olarak Firestore
 /// `courseMaterials` koleksiyonuna kaydedilir.
@@ -12,6 +12,24 @@ class CourseMaterialService {
 
   CourseMaterialService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  /// Belirtilen derse ait, admin tarafından onaylanmış materyalleri
+  /// gerçek zamanlı olarak dinleyen stream döner.
+  ///
+  /// Sadece `status: approved` olan belgeler döner.
+  /// Sonuçlar yüklenme tarihine göre yeniden eskiye sıralanır.
+  ///
+  /// [courseId]: Materyalleri listelenecek dersin Firestore ID'si.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchApprovedMaterials(
+    String courseId,
+  ) {
+    return _firestore
+        .collection(FirestoreCollections.courseMaterials)
+        .where('courseId', isEqualTo: courseId)
+        .where('status', isEqualTo: 'approved')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 
   /// Yeni ders materyalini Firestore'a pending olarak kaydeder.
   ///
