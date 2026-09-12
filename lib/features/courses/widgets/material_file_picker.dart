@@ -1,5 +1,5 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
@@ -8,10 +8,11 @@ import '../../../core/theme/app_text_styles.dart';
 
 /// Ders materyali yükleme formu için dosya seçme bileşeni.
 ///
-/// Kullanıcı bu bileşen üzerinden galeriden veya kameradan
-/// ders notu/çıkmış soru görseli seçebilir.
+/// Kullanıcı bu bileşen üzerinden cihazından PDF veya görsel dosyası
+/// (jpg, jpeg, png) seçebilir.
 ///
 /// Dosya seçildiğinde dosya adı, boyutu ve kaldırma butonu gösterilir.
+/// Desteklenmeyen dosya tipleri [FilePicker] tarafından filtrelenir.
 class MaterialFilePicker extends StatelessWidget {
   const MaterialFilePicker({
     super.key,
@@ -21,108 +22,30 @@ class MaterialFilePicker extends StatelessWidget {
   });
 
   /// Seçili dosya (seçim yapılmadıysa `null`).
-  final XFile? selectedFile;
+  final PlatformFile? selectedFile;
 
   /// Dosya seçildiğinde veya kaldırıldığında çağrılır.
-  final ValueChanged<XFile?> onFileChanged;
+  final ValueChanged<PlatformFile?> onFileChanged;
 
   /// Alanın aktif/pasif durumu.
   final bool enabled;
 
-  /// Dosya seçim kaynağını soran alt menüyü açar.
-  Future<void> _showPickerOptions(BuildContext context) async {
+  /// İzin verilen dosya uzantıları.
+  static const List<String> _allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+
+  /// Cihazdan dosya seçer. Yalnızca izin verilen tipler gösterilir.
+  Future<void> _pickFile(BuildContext context) async {
     if (!enabled) return;
 
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.lg),
-        ),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Dosya Yükle',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.background,
-                    child: Icon(
-                      Icons.photo_library_outlined,
-                      color: AppColors.primaryIndigo,
-                    ),
-                  ),
-                  title: const Text('Galeriden Seç'),
-                  subtitle: const Text('Cihazınızdaki görseller arasından seçin'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _pickFromSource(context, ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.background,
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: AppColors.primaryIndigo,
-                    ),
-                  ),
-                  title: const Text('Kamerayla Çek'),
-                  subtitle: const Text('Ders notunun fotoğrafını çekin'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _pickFromSource(context, ImageSource.camera);
-                  },
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Belirtilen kaynaktan görsel seçer.
-  Future<void> _pickFromSource(BuildContext context, ImageSource source) async {
     try {
-      final picker = ImagePicker();
-      final file = await picker.pickImage(
-        source: source,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 85,
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: _allowedExtensions,
+        allowMultiple: false,
       );
 
-      if (file != null) {
-        onFileChanged(file);
+      if (result != null && result.files.isNotEmpty) {
+        onFileChanged(result.files.first);
       }
     } catch (_) {
       if (context.mounted) {
@@ -145,6 +68,20 @@ class MaterialFilePicker extends StatelessWidget {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
+  /// Dosya uzantısına göre uygun ikon döner.
+  IconData _fileIcon(String? extension) {
+    switch (extension?.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf_outlined;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image_outlined;
+      default:
+        return Icons.insert_drive_file_outlined;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (selectedFile != null) {
@@ -157,7 +94,7 @@ class MaterialFilePicker extends StatelessWidget {
   /// Henüz dosya seçilmemişken gösterilen seçim alanı.
   Widget _buildEmptyState(BuildContext context) {
     return InkWell(
-      onTap: enabled ? () => _showPickerOptions(context) : null,
+      onTap: enabled ? () => _pickFile(context) : null,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -193,7 +130,7 @@ class MaterialFilePicker extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Ders notu fotoğrafı veya belgesi seçmek için dokunun',
+              'PDF, JPG, JPEG veya PNG seçmek için dokunun',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -206,7 +143,7 @@ class MaterialFilePicker extends StatelessWidget {
   }
 
   /// Dosya seçildikten sonra gösterilen bilgi kartı.
-  Widget _buildSelectedFileCard(BuildContext context, XFile file) {
+  Widget _buildSelectedFileCard(BuildContext context, PlatformFile file) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -222,8 +159,8 @@ class MaterialFilePicker extends StatelessWidget {
               color: AppColors.primaryIndigo.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: const Icon(
-              Icons.insert_drive_file_outlined,
+            child: Icon(
+              _fileIcon(file.extension),
               color: AppColors.primaryIndigo,
               size: 24,
             ),
@@ -243,20 +180,13 @@ class MaterialFilePicker extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                FutureBuilder<int>(
-                  future: file.length(),
-                  builder: (context, snapshot) {
-                    final sizeText = snapshot.hasData
-                        ? _formatFileSize(snapshot.data!)
-                        : 'Hesaplanıyor...';
-                    return Text(
-                      sizeText,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    );
-                  },
-                ),
+                if (file.size > 0)
+                  Text(
+                    _formatFileSize(file.size),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
               ],
             ),
           ),

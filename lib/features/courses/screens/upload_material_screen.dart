@@ -1,5 +1,5 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
@@ -52,7 +52,7 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
   String? _selectedMaterialType;
 
   /// Seçili dosya.
-  XFile? _selectedFile;
+  PlatformFile? _selectedFile;
 
   /// Telif hakkı uyarısının kabul edilip edilmediği.
   bool _isDisclaimerAccepted = false;
