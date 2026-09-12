@@ -1,23 +1,29 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/mock_storage_service.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_dropdown_field.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
+import '../services/course_material_service.dart';
 import '../widgets/course_detail_args.dart';
 import '../widgets/material_file_picker.dart';
 
-/// Ders Notu veya Çıkmış Soru Yükleme Ekranı (Issue #53).
+/// Ders Notu veya Çıkmış Soru Yükleme Ekranı (Issue #53 + #55).
 ///
 /// Kullanıcı bu ekrandan ders materyali (not, çıkmış soru, özet vb.)
 /// yüklemek için gerekli form alanlarını doldurur.
 ///
 /// Telif hakkı uyarısı checkbox'ı işaretlenmeden "Yükle" butonu aktif olmaz.
-/// Gerçek dosya yükleme ve Firestore kayıt işlemleri kapsam dışıdır.
+/// Dosya mock upload ile URL alınır, Firestore'a pending olarak kaydedilir.
 class UploadMaterialScreen extends StatefulWidget {
   const UploadMaterialScreen({
     super.key,
@@ -47,6 +53,10 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+
+  // Servisler — MockStorageService gerçek R2 upload hazır olana kadar kullanılır.
+  final _storageService = MockStorageService();
+  final _materialService = CourseMaterialService();
 
   /// Seçili materyal tipi.
   String? _selectedMaterialType;
@@ -80,8 +90,22 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
     super.dispose();
   }
 
-  /// Form doğrulamasını yapar ve gönderme akışını tamamlar.
-  void _onSubmit() {
+  /// UI materyal tipini Firestore type değerine çevirir.
+  String _materialTypeToFirestore(String uiType) {
+    switch (uiType) {
+      case 'Ders notu':
+        return 'lecture_note';
+      case 'Çıkmış soru':
+        return 'past_exam';
+      case 'Özet':
+        return 'summary';
+      default:
+        return 'other';
+    }
+  }
+
+  /// Form doğrulamasını yapar, mock upload yapar ve Firestore'a kaydeder.
+  Future<void> _onSubmit() async {
     // 1. Form alanları doğrulaması
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -111,18 +135,71 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
       return;
     }
 
+    // 4. Dosya path'i kontrol et — iOS'ta bazı durumlarda null olabilir
+    final filePath = _selectedFile!.path;
+    if (filePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bu dosya seçilemedi. Lütfen yerel bir dosya seçin.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // 5. Giriş yapmış kullanıcının UID'sini al
+    final userId = context.read<AuthProvider>().currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Oturumunuz sona ermiş. Lütfen tekrar giriş yapın.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Gerçek upload ve Firestore kaydı kapsam dışıdır.
-    // Başarı bildirimi verilip ekran kapatılır.
-    Future.delayed(const Duration(milliseconds: 600), () {
+    try {
+      final file = _selectedFile!;
+      final extension = file.extension ?? 'bin';
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      const folder = 'course_materials';
+
+      // Mock upload — gerçek R2 entegrasyonu hazır olana kadar
+      final fileUrl = await _storageService.uploadFile(
+        file: File(filePath),
+        folder: folder,
+        fileName: fileName,
+      );
+
+      final fileKey = '$folder/$fileName';
+      final courseId = widget.courseArgs?.courseId ?? '';
+
+      // Firestore'a pending olarak kaydet
+      await _materialService.saveMaterial(
+        courseId: courseId,
+        uploadedBy: userId,
+        title: _titleController.text,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text,
+        type: _materialTypeToFirestore(_selectedMaterialType!),
+        fileUrl: fileUrl,
+        fileKey: fileKey,
+        fileType: extension,
+        fileSize: file.size,
+      );
+
       if (!mounted) return;
-      setState(() => _isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Ders materyali başarıyla yüklendi. Admin onayından sonra yayınlanacaktır.',
+            'Materyaliniz admin onayından sonra yayınlanacaktır.',
           ),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
@@ -131,7 +208,18 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
       );
 
       Navigator.of(context).pop();
-    });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bir hata oluştu. Lütfen tekrar deneyin.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -241,7 +329,7 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
                   icon: Icons.cloud_upload_outlined,
                   // Checkbox işaretlenmeden buton aktif olmamalı
                   onPressed: _isDisclaimerAccepted && !_isLoading
-                      ? _onSubmit
+                      ? () => _onSubmit()
                       : null,
                   isLoading: _isLoading,
                 ),
