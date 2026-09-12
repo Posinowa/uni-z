@@ -51,5 +51,9 @@
 	<string>Gönderi için fotoğraf çekebilmek amacıyla kamera erişimi gereklidir.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Video kaydı için mikrofon erişimi gereklidir.</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>
