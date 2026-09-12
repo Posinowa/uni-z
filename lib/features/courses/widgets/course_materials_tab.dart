@@ -8,6 +8,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/states/app_empty_state.dart';
 import '../services/course_material_service.dart';
+import '../../../features/reports/models/report_target_type.dart';
+import '../../../features/reports/widgets/report_bottom_sheet.dart';
 import 'material_card.dart';
 
 /// Ders detay ekranındaki "Materyaller" sekmesini temsil eden widget.
@@ -150,7 +152,11 @@ class _CourseMaterialsTabState extends State<CourseMaterialsTab> {
                       fileType: data['fileType'] as String? ?? '',
                       createdAt: data['createdAt'] as Timestamp?,
                       onReportTap: () {
-                        // Raporlama ayrı issue'da gelecek
+                        ReportBottomSheet.show(
+                          context: context,
+                          targetId: doc.id,
+                          targetType: ReportTargetType.material,
+                        );
                       },
                     ),
                   );
