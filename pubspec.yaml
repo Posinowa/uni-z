@@ -47,6 +47,9 @@ dependencies:
   # Image picker
   image_picker: ^1.1.2
 
+  # File picker (PDF + görsel seçimi için - Issue #54)
+  file_picker: ^8.1.2
+
   # Environment configuration
   flutter_dotenv: ^5.2.1
 
