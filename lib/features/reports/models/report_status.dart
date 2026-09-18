@@ -11,16 +11,20 @@ enum ReportStatus {
   const ReportStatus(this.value);
 
   /// String değerden [ReportStatus] enum nesnesine dönüştürür.
-  /// Tanınmayan veya null değerler için varsayılan olarak [ReportStatus.open] döner.
+  ///
+  /// Bilinmeyen veya null değerlerde [ReportStatus.open] döner.
   static ReportStatus fromString(String? statusStr) {
     switch (statusStr) {
+      case 'open':
+        return ReportStatus.open;
       case 'reviewed':
         return ReportStatus.reviewed;
       case 'resolved':
         return ReportStatus.resolved;
       case 'rejected':
         return ReportStatus.rejected;
-      case 'open':
+      case null:
+        return ReportStatus.open;
       default:
         return ReportStatus.open;
     }
