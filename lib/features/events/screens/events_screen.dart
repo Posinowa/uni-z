@@ -65,6 +65,15 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(context, CreateEventScreen.route());
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Etkinlik Ekle'),
+        backgroundColor: AppColors.categoryEvents,
+        foregroundColor: Colors.white,
+      ),
       appBar: AppBar(
         title: const Text('Etkinlikler'),
       ),
