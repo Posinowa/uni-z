@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Fonksiyonlar ──────────────────────────────────────────────────
+
+    /// Giriş yapmış kullanıcıyı doğrular.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ── reports koleksiyonu ──────────────────────────────────────────────────
+    //
+    // Kapsam: Sadece authenticated kullanıcı rapor oluşturabilir.
+    // Admin rapor yönetimi bu kapsam dışındadır (P1 issue).
+
+    match /reports/{reportId} {
+      // Rapor oluşturma kuralı:
+      // 1. Kullanıcı giriş yapmış olmalı.
+      // 2. reportedBy alanı mevcut kullanıcının UID'si olmalı (client bypass engeli).
+      // 3. Zorunlu alanlar (targetType, targetId, reason) dolu olmalı.
+      allow create: if isAuthenticated()
+        && request.resource.data.reportedBy == request.auth.uid
+        && request.resource.data.targetType is string
+        && request.resource.data.targetType.size() > 0
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0;
+
+      // Okuma, güncelleme ve silme: Admin panel kapsamında değerlendirilecek.
+      allow read, update, delete: if false;
+    }
+  }
+}
