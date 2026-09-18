@@ -2,59 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/report_model.dart';
+import '../models/report_reason.dart';
 import '../models/report_target_type.dart';
 import '../services/report_service.dart';
 
-/// İçerik raporlama için ortak bottom sheet bileşeni.
+/// Bir içeriği raporlamak için kullanıcıya sebep seçtiren bottom sheet.
 ///
-/// Kullanım:
-/// ```dart
-/// ReportBottomSheet.show(
-///   context: context,
-///   targetId: materialId,
-///   targetType: ReportTargetType.material,
-/// );
-/// ```
-///
-/// Kullanıcı bir sebep seçip "Raporla" butonuna bastığında
-/// [ReportService.createReport] çağrılır ve rapor Firestore'a kaydedilir.
-/// Aynı kullanıcı aynı içeriği tekrar raporlamaya çalışırsa hata mesajı gösterilir.
+/// Kullanıcı giriş yapmamışsa bottom sheet açılmamalıdır.
+/// Açılırken [postId] geçilmesi zorunludur.
 class ReportBottomSheet extends StatefulWidget {
+  /// Raporlanacak post'un Firestore belgesi kimliği.
+  final String postId;
+
+  /// Rapor servis enjeksiyonu. Test edilebilirlik için dışarıdan geçilebilir.
+  final ReportService? reportService;
+
+  /// Hata gözlemlenebilirliği ve crash reporting için opsiyonel hata kancası (hook).
+  final void Function(Object error, StackTrace? stackTrace)? onError;
+
   const ReportBottomSheet({
     super.key,
-    required this.targetId,
-    required this.targetType,
+    required this.postId,
+    this.reportService,
+    this.onError,
   });
 
-  /// Raporlanan içeriğin Firestore ID'si.
-  final String targetId;
-
-  /// Raporlanan içerik türü (material, post, event, user).
-  final ReportTargetType targetType;
-
   /// Bottom sheet'i gösterir.
-  static Future<void> show({
-    required BuildContext context,
-    required String targetId,
-    required ReportTargetType targetType,
+  ///
+  /// Dışarıdan çağrılacak yardımcı metod.
+  static Future<void> show(
+    BuildContext context, {
+    required String postId,
+    ReportService? reportService,
+    void Function(Object error, StackTrace? stackTrace)? onError,
   }) {
-    return showModalBottomSheet<void>(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.lg),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => ReportBottomSheet(
-        targetId: targetId,
-        targetType: targetType,
+        postId: postId,
+        reportService: reportService,
+        onError: onError,
       ),
     );
   }
@@ -64,34 +58,32 @@ class ReportBottomSheet extends StatefulWidget {
 }
 
 class _ReportBottomSheetState extends State<ReportBottomSheet> {
-  final _reportService = ReportService();
+  late final ReportService _reportService;
 
-  /// Seçili sebep indeksi. null = henüz seçilmedi.
-  int? _selectedReasonIndex;
+  /// Seçili rapor sebebi enum'ı. Kullanıcı seçmeden submit edemez.
+  ReportReason? _selectedReason;
 
-  /// Gönderim sırasında true olur.
   bool _isLoading = false;
 
-  /// Raporlama sebepleri.
-  static const List<String> _reasons = [
-    'Telif hakkı ihlali',
-    'Yanıltıcı veya yanlış bilgi',
-    'Uygunsuz içerik',
-    'Spam',
-    'Diğer',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _reportService = widget.reportService ?? ReportService();
+  }
 
-  Future<void> _onSubmit() async {
-    if (_selectedReasonIndex == null) return;
+  // Rapor sebepleri enum listesi.
+  static const List<ReportReason> _reasons = ReportReason.values;
 
-    // Giriş yapmış kullanıcının UID'sini al
-    final userId = context.read<AuthProvider>().currentUser?.uid;
-    if (userId == null) {
-      _showSnackBar(
-        ScaffoldMessenger.of(context),
-        'Raporlamak için giriş yapmanız gerekiyor.',
-        isError: true,
-      );
+  Future<void> _submit() async {
+    final selectedReason = _selectedReason;
+    if (selectedReason == null) return;
+
+    final currentUserId =
+        context.read<AuthProvider>().currentUser?.uid ?? '';
+
+    // Servis katmanı zaten kontrol eder; UI'da da güvenlik katmanı.
+    if (currentUserId.isEmpty) {
+      Navigator.of(context).pop();
       return;
     }
 
@@ -100,176 +92,108 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
     try {
       final report = ReportModel(
         id: '',
-        targetType: widget.targetType,
-        targetId: widget.targetId,
-        reportedBy: userId,
-        reason: _reasons[_selectedReasonIndex!],
+        targetType: ReportTargetType.post,
+        targetId: widget.postId,
+        reportedBy: currentUserId,
+        reason: selectedReason.value,
         createdAt: DateTime.now(),
       );
 
       await _reportService.createReport(report);
 
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      _showSnackBar(
-        messenger,
-        'Raporunuz alındı. İncelendikten sonra işlem yapılacaktır.',
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Raporunuz alındı. İncelenecek.'),
+          backgroundColor: AppColors.primaryIndigo,
+        ),
       );
     } on StateError catch (e) {
-      // Duplicate rapor — ReportService StateError fırlatır
+      // Aynı içerik zaten raporlanmış.
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      _showSnackBar(messenger, e.message, isError: true);
-    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } catch (e, stackTrace) {
+      widget.onError?.call(e, stackTrace);
       if (!mounted) return;
-      _showSnackBar(
-        ScaffoldMessenger.of(context),
-        'Bir hata oluştu. Lütfen tekrar deneyin.',
-        isError: true,
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Rapor gönderilemedi. Lütfen tekrar deneyin.'),
+          backgroundColor: AppColors.error,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnackBar(
-    ScaffoldMessengerState messenger,
-    String message, {
-    bool isError = false,
-  }) {
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error : AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Klavye açıldığında içerik yukarı kaymasın diye
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── Başlık ───────────────────────────────────────────
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: Text(
+              'Gönderiyi Raporla',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Tutamaç çubuğu ──
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1),
 
-              // ── Başlık ──
-              Text(
-                'İçeriği Raporla',
-                style: AppTextStyles.titleMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Bu içeriği neden raporlamak istiyorsunuz?',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // ── Sebep Listesi ──
-              ...List.generate(_reasons.length, (index) {
-                final isSelected = _selectedReasonIndex == index;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: InkWell(
-                    onTap: () {
-                      setState(() => _selectedReasonIndex = index);
-                    },
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm + 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primaryIndigo.withValues(alpha: 0.08)
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primaryIndigo
-                              : AppColors.border,
-                          width: isSelected ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSelected
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_unchecked,
-                            color: isSelected
-                                ? AppColors.primaryIndigo
-                                : AppColors.textSecondary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Text(
-                            _reasons[index],
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: isSelected
-                                  ? AppColors.primaryIndigo
-                                  : AppColors.textPrimary,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+          // ─── Sebep Listesi ────────────────────────────────────
+          RadioGroup<ReportReason>(
+            groupValue: _selectedReason,
+            onChanged: (value) {
+              if (value != null) setState(() => _selectedReason = value);
+            },
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _reasons.length,
+              itemBuilder: (context, index) {
+                final reason = _reasons[index];
+                return RadioListTile<ReportReason>(
+                  title: Text(reason.label),
+                  value: reason,
+                  activeColor: AppColors.primaryIndigo,
                 );
-              }),
+              },
+            ),
+          ),
 
-              const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1),
 
-              // ── Raporla Butonu ──
-              FilledButton(
-                onPressed: _selectedReasonIndex != null && !_isLoading
-                    ? _onSubmit
-                    : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                  disabledBackgroundColor: AppColors.border,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.md,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                ),
+          // ─── Gönder Butonu ────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: (_selectedReason == null || _isLoading)
+                    ? null
+                    : _submit,
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -279,18 +203,11 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(
-                        'Raporla',
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    : const Text('Raporla'),
               ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
