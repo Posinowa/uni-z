@@ -12,6 +12,7 @@ import '../widgets/course_detail_args.dart';
 import '../widgets/course_empty_state.dart';
 import '../widgets/course_search_bar.dart';
 import 'course_detail_screen.dart';
+import 'suggest_course_screen.dart';
 
 /// Kullanıcının kayıtlı olduğu üniversiteye ait onaylanmış dersleri listeleyen ekran.
 ///
@@ -124,12 +125,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   void _onAddCoursePressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ders ekleme özelliği yakında kullanıma açılacaktır.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    Navigator.push(context, SuggestCourseScreen.route());
   }
 
   List<CourseModel> _filterCoursesLocally(List<CourseModel> courses) {
