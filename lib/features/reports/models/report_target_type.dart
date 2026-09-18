@@ -11,16 +11,20 @@ enum ReportTargetType {
   const ReportTargetType(this.value);
 
   /// String değerden [ReportTargetType] enum nesnesine dönüştürür.
-  /// Tanınmayan veya null değerler için varsayılan olarak [ReportTargetType.post] döner.
+  ///
+  /// Bilinmeyen veya null değerlerde [ReportTargetType.post] döner.
   static ReportTargetType fromString(String? typeStr) {
     switch (typeStr) {
+      case 'post':
+        return ReportTargetType.post;
       case 'material':
         return ReportTargetType.material;
       case 'event':
         return ReportTargetType.event;
       case 'user':
         return ReportTargetType.user;
-      case 'post':
+      case null:
+        return ReportTargetType.post;
       default:
         return ReportTargetType.post;
     }
