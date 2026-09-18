@@ -6,6 +6,7 @@ import '../../../shared/widgets/states/states.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
 import '../widgets/event_card.dart';
+import 'create_event_screen.dart';
 import 'event_detail_screen.dart';
 
 /// Kampüs etkinliklerinin listelendiği ana ekran.
@@ -64,6 +65,15 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(context, CreateEventScreen.route());
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Etkinlik Ekle'),
+        backgroundColor: AppColors.categoryEvents,
+        foregroundColor: Colors.white,
+      ),
       appBar: AppBar(
         title: const Text('Etkinlikler'),
       ),
