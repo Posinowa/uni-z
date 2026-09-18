@@ -16,19 +16,39 @@ class ReportBottomSheet extends StatefulWidget {
   /// Raporlanacak post'un Firestore belgesi kimliği.
   final String postId;
 
-  const ReportBottomSheet({super.key, required this.postId});
+  /// Rapor servis enjeksiyonu. Test edilebilirlik için dışarıdan geçilebilir.
+  final ReportService? reportService;
+
+  /// Hata gözlemlenebilirliği ve crash reporting için opsiyonel hata kancası (hook).
+  final void Function(Object error, StackTrace? stackTrace)? onError;
+
+  const ReportBottomSheet({
+    super.key,
+    required this.postId,
+    this.reportService,
+    this.onError,
+  });
 
   /// Bottom sheet'i gösterir.
   ///
   /// Dışarıdan çağrılacak yardımcı metod.
-  static Future<void> show(BuildContext context, {required String postId}) {
+  static Future<void> show(
+    BuildContext context, {
+    required String postId,
+    ReportService? reportService,
+    void Function(Object error, StackTrace? stackTrace)? onError,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => ReportBottomSheet(postId: postId),
+      builder: (_) => ReportBottomSheet(
+        postId: postId,
+        reportService: reportService,
+        onError: onError,
+      ),
     );
   }
 
@@ -37,12 +57,18 @@ class ReportBottomSheet extends StatefulWidget {
 }
 
 class _ReportBottomSheetState extends State<ReportBottomSheet> {
-  final ReportService _reportService = ReportService();
+  late final ReportService _reportService;
 
   /// Seçili rapor sebebi. Kullanıcı seçmeden submit edemez.
   String? _selectedReason;
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportService = widget.reportService ?? ReportService();
+  }
 
   // Rapor sebepleri listesi.
   static const List<String> _reasons = [
@@ -100,7 +126,8 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
           backgroundColor: AppColors.error,
         ),
       );
-    } catch (_) {
+    } catch (e, stackTrace) {
+      widget.onError?.call(e, stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
