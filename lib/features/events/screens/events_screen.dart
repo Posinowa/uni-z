@@ -6,6 +6,7 @@ import '../../../shared/widgets/states/states.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
 import '../widgets/event_card.dart';
+import 'create_event_screen.dart';
 import 'event_detail_screen.dart';
 
 /// Kampüs etkinliklerinin listelendiği ana ekran.
