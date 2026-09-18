@@ -21,7 +21,6 @@ class ReportService extends FirestoreService {
   /// Deterministic doc ID kullanır: `{userId}_{targetType}_{targetId}`.
   /// Bu sayede aynı kullanıcı-hedef çifti için concurrent isteklerde bile
   /// tek kayıt oluşur (idempotent).
-  ///
   /// - [report.reportedBy] veya [report.targetId] boşsa [ArgumentError] fırlatır.
   /// - Aynı kullanıcı aynı içeriği zaten raporlamışsa [StateError] fırlatır.
   /// - İşlem sırasında hata oluşursa [FirebaseException] fırlatır.
