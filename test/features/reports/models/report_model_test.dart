@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uniz_mobile/features/reports/models/report_model.dart';
+import 'package:uniz_mobile/features/reports/models/report_reason.dart';
 import 'package:uniz_mobile/features/reports/models/report_status.dart';
 import 'package:uniz_mobile/features/reports/models/report_target_type.dart';
 
@@ -13,7 +14,7 @@ void main() {
       'targetType': 'post',
       'targetId': 'post_abc',
       'reportedBy': 'user_123',
-      'reason': 'Uygunsuz içerik',
+      'reason': 'inappropriate_content',
       'description': 'Hakaret içeriyor',
       'status': 'open',
       'createdAt': Timestamp.fromDate(testDate),
@@ -26,7 +27,7 @@ void main() {
       targetType: ReportTargetType.post,
       targetId: 'post_abc',
       reportedBy: 'user_123',
-      reason: 'Uygunsuz içerik',
+      reason: 'inappropriate_content',
       description: 'Hakaret içeriyor',
       status: ReportStatus.open,
       createdAt: testDate,
@@ -43,7 +44,8 @@ void main() {
       expect(model.targetType, ReportTargetType.post);
       expect(model.targetId, 'post_abc');
       expect(model.reportedBy, 'user_123');
-      expect(model.reason, 'Uygunsuz içerik');
+      expect(model.reason, 'inappropriate_content');
+      expect(model.reasonEnum, ReportReason.inappropriateContent);
       expect(model.description, 'Hakaret içeriyor');
       expect(model.status, ReportStatus.open);
       expect(model.createdAt, testDate);
@@ -59,6 +61,7 @@ void main() {
       expect(model.targetId, '');
       expect(model.reportedBy, '');
       expect(model.reason, '');
+      expect(model.reasonEnum, ReportReason.other);
       expect(model.description, isNull);
       expect(model.status, ReportStatus.open);
       expect(model.createdAt, isNull);
@@ -73,14 +76,14 @@ void main() {
 
     // ── toMap testleri ──
 
-    test('toMap doğru Map çıktısı üretir', () {
+    test('toMap id alanını içermez (doc ID tutarlılığı) ve doğru Map çıktısı üretir', () {
       final map = testReport.toMap();
 
-      expect(map['id'], 'report_1');
+      expect(map.containsKey('id'), isFalse);
       expect(map['targetType'], 'post');
       expect(map['targetId'], 'post_abc');
       expect(map['reportedBy'], 'user_123');
-      expect(map['reason'], 'Uygunsuz içerik');
+      expect(map['reason'], 'inappropriate_content');
       expect(map['description'], 'Hakaret içeriyor');
       expect(map['status'], 'open');
       expect(map['createdAt'], isA<Timestamp>());
@@ -90,13 +93,14 @@ void main() {
 
     test('toMap → fromMap round-trip tutarlıdır', () {
       final map = testReport.toMap();
-      final restored = ReportModel.fromMap(map);
+      final restored = ReportModel.fromMap(map, id: testReport.id);
 
       expect(restored.id, testReport.id);
       expect(restored.targetType, testReport.targetType);
       expect(restored.targetId, testReport.targetId);
       expect(restored.reportedBy, testReport.reportedBy);
       expect(restored.reason, testReport.reason);
+      expect(restored.reasonEnum, testReport.reasonEnum);
       expect(restored.description, testReport.description);
       expect(restored.status, testReport.status);
       expect(restored.createdAt, testReport.createdAt);
@@ -106,11 +110,12 @@ void main() {
 
     test('copyWith alanları günceller', () {
       final updated = testReport.copyWith(
-        reason: 'Spam',
+        reason: 'spam_misleading',
         status: ReportStatus.reviewed,
       );
 
-      expect(updated.reason, 'Spam');
+      expect(updated.reason, 'spam_misleading');
+      expect(updated.reasonEnum, ReportReason.spamMisleading);
       expect(updated.status, ReportStatus.reviewed);
       // Değişmeyen alanlar korunur.
       expect(updated.id, testReport.id);
@@ -165,6 +170,41 @@ void main() {
   });
 
   // ── Enum parsing testleri ──
+
+  group('ReportReason Testleri', () {
+    test('tüm geçerli code değerleri doğru enum döner', () {
+      expect(ReportReason.fromString('inappropriate_content'), ReportReason.inappropriateContent);
+      expect(ReportReason.fromString('spam_misleading'), ReportReason.spamMisleading);
+      expect(ReportReason.fromString('hate_speech'), ReportReason.hateSpeech);
+      expect(ReportReason.fromString('harassment'), ReportReason.harassment);
+      expect(ReportReason.fromString('copyright_violation'), ReportReason.copyrightViolation);
+      expect(ReportReason.fromString('other'), ReportReason.other);
+    });
+
+    test('eski Türkçe label değerleri backward compatibility için doğru enum döner', () {
+      expect(ReportReason.fromString('Uygunsuz içerik'), ReportReason.inappropriateContent);
+      expect(ReportReason.fromString('Spam veya yanıltıcı'), ReportReason.spamMisleading);
+      expect(ReportReason.fromString('Nefret söylemi'), ReportReason.hateSpeech);
+      expect(ReportReason.fromString('Taciz veya zorbalık'), ReportReason.harassment);
+      expect(ReportReason.fromString('Telif hakkı ihlali'), ReportReason.copyrightViolation);
+      expect(ReportReason.fromString('Diğer'), ReportReason.other);
+    });
+
+    test('bilinmeyen veya null değer other döner', () {
+      expect(ReportReason.fromString('unknown'), ReportReason.other);
+      expect(ReportReason.fromString(null), ReportReason.other);
+      expect(ReportReason.fromString(''), ReportReason.other);
+    });
+
+    test('her enum değeri benzersiz value ve dolu label içerir', () {
+      final values = ReportReason.values.map((e) => e.value).toSet();
+      expect(values.length, ReportReason.values.length);
+      for (final reason in ReportReason.values) {
+        expect(reason.value.isNotEmpty, isTrue);
+        expect(reason.label.isNotEmpty, isTrue);
+      }
+    });
+  });
 
   group('ReportTargetType Testleri', () {
     test('tüm geçerli değerler doğru enum döner', () {
