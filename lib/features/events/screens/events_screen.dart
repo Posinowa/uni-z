@@ -4,10 +4,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../shared/widgets/states/states.dart';
 import '../models/event_model.dart';
-import '../models/event_status.dart';
 import '../services/event_service.dart';
 import '../widgets/event_card.dart';
-import 'event_detail_screen.dart';
 
 /// Kampüs etkinliklerinin listelendiği ana ekran.
 ///
@@ -36,7 +34,6 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> {
   EventService? _eventService;
   late Stream<List<EventModel>> _eventsStream;
-  bool _showDemoEvents = false;
 
   @override
   void initState() {
@@ -68,124 +65,66 @@ class _EventsScreenState extends State<EventsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Etkinlikler'),
-        actions: [
-          if (_showDemoEvents)
-            TextButton.icon(
-              onPressed: () => setState(() => _showDemoEvents = false),
-              icon: const Icon(Icons.cloud_outlined, size: 18),
-              label: const Text('Canlı Veri'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryIndigo,
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.playlist_play_rounded),
-              tooltip: 'Örnek Etkinlikleri Göster',
-              onPressed: () => setState(() => _showDemoEvents = true),
-            ),
-        ],
       ),
-      body: _showDemoEvents
-          ? _buildEventList(_getSampleEvents())
-          : StreamBuilder<List<EventModel>>(
-              stream: _eventsStream,
-              builder: (context, snapshot) {
-                // ─── Yükleniyor Durumu ────────────────────────────────
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AppLoadingView();
-                }
+      body: StreamBuilder<List<EventModel>>(
+        stream: _eventsStream,
+        builder: (context, snapshot) {
+          // ─── Yükleniyor Durumu ────────────────────────────────
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoadingView();
+          }
 
-                // ─── Hata Durumu ──────────────────────────────────────
-                if (snapshot.hasError) {
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxl,
-                        vertical: AppSpacing.lg,
+          // ─── Hata Durumu ──────────────────────────────────────
+          if (snapshot.hasError) {
+            return AppErrorState(
+              title: 'Etkinlikler yüklenemedi',
+              message: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+              onRetry: _retry,
+            );
+          }
+
+          final events = snapshot.data ?? [];
+
+          // ─── Boş Durum ────────────────────────────────────────
+          if (events.isEmpty) {
+            return AppEmptyState(
+              icon: Icons.event_busy_outlined,
+              title: 'Henüz etkinlik yok',
+              description:
+                  'Yakında yeni kampüs etkinlikleri burada listelenecektir.',
+              actionText: 'Yenile',
+              onActionPressed: _retry,
+            );
+          }
+
+          // ─── Etkinlik Listesi ─────────────────────────────────
+          return RefreshIndicator(
+            color: AppColors.categoryEvents,
+            onRefresh: () async {
+              _retry();
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.sm,
+                bottom: AppSpacing.xl,
+              ),
+              itemCount: events.length,
+              itemBuilder: (context, index) {
+                final event = events[index];
+                return EventCard(
+                  event: event,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            Text('${event.title} detayları yakında eklenecek.'),
+                        duration: const Duration(seconds: 1),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppErrorState(
-                            title: 'Etkinlikler yüklenemedi',
-                            message:
-                                '${snapshot.error ?? "Bir hata oluştu. Lütfen tekrar deneyin."}',
-                            onRetry: _retry,
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              setState(() => _showDemoEvents = true);
-                            },
-                            icon: const Icon(
-                              Icons.visibility_outlined,
-                              color: AppColors.categoryEvents,
-                            ),
-                            label: const Text(
-                              'Örnek Etkinlikleri Göster (UI İnceleme)',
-                              style: TextStyle(color: AppColors.categoryEvents),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: AppColors.categoryEvents,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                                vertical: AppSpacing.md,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                final events = snapshot.data ?? [];
-
-                // ─── Boş Durum ────────────────────────────────────────
-                if (events.isEmpty) {
-                  return AppEmptyState(
-                    icon: Icons.event_busy_outlined,
-                    title: 'Henüz etkinlik yok',
-                    description:
-                        'Yakında yeni kampüs etkinlikleri burada listelenecektir.',
-                    actionText: 'Yenile',
-                    onActionPressed: _retry,
-                  );
-                }
-
-                // ─── Etkinlik Listesi ─────────────────────────────────
-                return _buildEventList(events);
+                    );
+                  },
+                );
               },
             ),
-    );
-  }
-
-  /// Etkinlik listesi görünümünü oluşturur.
-  Widget _buildEventList(List<EventModel> events) {
-    return RefreshIndicator(
-      color: AppColors.categoryEvents,
-      onRefresh: () async {
-        _retry();
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.only(
-          top: AppSpacing.sm,
-          bottom: AppSpacing.xl,
-        ),
-        itemCount: events.length,
-        itemBuilder: (context, index) {
-          final event = events[index];
-          return EventCard(
-            event: event,
-            onTap: () {
-              Navigator.push(
-                context,
-                EventDetailScreen.route(event: event),
-              );
-            },
           );
         },
       ),
