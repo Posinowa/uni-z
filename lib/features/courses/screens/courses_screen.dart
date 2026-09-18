@@ -8,8 +8,10 @@ import '../../profile/services/profile_service.dart';
 import '../models/course_model.dart';
 import '../services/course_service.dart';
 import '../widgets/course_card.dart';
+import '../widgets/course_detail_args.dart';
 import '../widgets/course_empty_state.dart';
 import '../widgets/course_search_bar.dart';
+import 'course_detail_screen.dart';
 
 /// Kullanıcının kayıtlı olduğu üniversiteye ait onaylanmış dersleri listeleyen ekran.
 ///
@@ -273,7 +275,19 @@ class _CoursesScreenState extends State<CoursesScreen> {
               departmentName: departmentDisplay,
               materialCount: 0, // Placeholder
               onTap: () {
-                // Kapsam dışı: Ders detay yok.
+                Navigator.push(
+                  context,
+                  CourseDetailScreen.route(
+                    args: CourseDetailArgs(
+                      courseId: course.id,
+                      courseCode: course.courseCode,
+                      courseName: course.courseName,
+                      description: course.description,
+                      universityName: course.universityName ?? '',
+                      departmentName: departmentDisplay,
+                    ),
+                  ),
+                );
               },
             );
           },
