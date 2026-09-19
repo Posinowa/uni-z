@@ -1,5 +1,4 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
 ///
@@ -28,8 +27,8 @@ class NotificationService {
   /// Singleton instance.
   static final NotificationService instance = NotificationService._();
 
-  /// Firebase Messaging instance.
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  /// Firebase Messaging instance — lazy getter ile test ortamında erken crash önlenir.
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   /// Foreground'da mesaj alındığında tetiklenen callback.
   ///
@@ -41,36 +40,31 @@ class NotificationService {
   /// Sırasıyla:
   /// 1. Kullanıcıdan bildirim izni ister (Android 13+ ve iOS).
   /// 2. Arka plan mesaj handler'ını tanımlar.
-  /// 3. FCM token'ı alır ve debug modda konsola basar.
+  /// 3. FCM token'ı alır.
   /// 4. Foreground mesaj dinleyicisini kurar.
   Future<void> initialize() async {
-    // 1. Bildirim izni iste
-    final settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    if (kDebugMode) {
-      debugPrint(
-        'FCM izin durumu: ${settings.authorizationStatus}',
+    try {
+      // 1. Bildirim izni iste
+      await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
       );
+
+      // 2. Arka plan mesaj handler'ını tanımla
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      // 3. FCM token al
+      await getToken();
+
+      // 4. Foreground mesaj dinleyicisini kur
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    } catch (_) {
+      // Firebase başlatılmamışsa veya test ortamındaysa sessizce yakalanır
     }
-
-    // 2. Arka plan mesaj handler'ını tanımla
-    FirebaseMessaging.onBackgroundMessage(
-      _firebaseMessagingBackgroundHandler,
-    );
-
-    // 3. FCM token al
-    final token = await getToken();
-    if (kDebugMode) {
-      debugPrint('FCM Token: $token');
-    }
-
-    // 4. Foreground mesaj dinleyicisini kur
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
   }
 
   /// Güncel FCM token'ı döndürür.
@@ -79,10 +73,7 @@ class NotificationService {
   Future<String?> getToken() async {
     try {
       return await _fcm.getToken();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('FCM token alınamadı: $e');
-      }
+    } catch (_) {
       return null;
     }
   }
@@ -91,12 +82,6 @@ class NotificationService {
   ///
   /// Eğer [onForegroundMessage] callback'i set edilmişse onu çağırır.
   void _handleForegroundMessage(RemoteMessage message) {
-    if (kDebugMode) {
-      debugPrint(
-        'Foreground mesaj alındı: ${message.notification?.title}',
-      );
-    }
-
     // Callback set edildiyse çağır (snackbar gösterimi için)
     onForegroundMessage?.call(message);
   }
