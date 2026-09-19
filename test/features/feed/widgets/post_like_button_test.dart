@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uniz_mobile/core/services/banned_action_guard.dart';
 import 'package:uniz_mobile/features/feed/services/post_like_service.dart';
 import 'package:uniz_mobile/features/feed/widgets/post_like_button.dart';
+import 'package:uniz_mobile/features/profile/services/profile_service.dart';
+
+class FakeProfileServiceForLike extends Fake implements ProfileService {
+  final bool isBannedValue;
+  FakeProfileServiceForLike({this.isBannedValue = false});
+
+  @override
+  Future<bool> isUserBanned(String userId) async => isBannedValue;
+}
 
 class MockPostLikeService extends Fake implements PostLikeService {
   bool isLikedResult = false;
@@ -172,6 +182,43 @@ void main() {
       expect(find.text('10'), findsOneWidget);
       expect(find.byIcon(Icons.favorite_border), findsOneWidget);
       expect(find.text('Beğeni işlemi gerçekleştirilemedi.'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Banlı kullanıcı beğeniye bastığında işlem engellenir ve standart SnackBar gösterilir',
+        (tester) async {
+      BannedActionGuard.mockProfileService =
+          FakeProfileServiceForLike(isBannedValue: true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PostLikeButton(
+              postId: 'post_1',
+              userId: 'user_banned',
+              initialLikeCount: 10,
+              initialIsLiked: false,
+              postLikeService: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(PostLikeButton));
+      await tester.pump();
+
+      // toggleLike çağrılmamış olmalı
+      expect(mockService.toggleCallCount, 0);
+      // Standart kısıtlama mesajı gösterilmeli
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+        find.text(BannedActionGuard.bannedMessage),
+        findsOneWidget,
+      );
+      // Beğeni sayısı değişmemiş olmalı
+      expect(find.text('10'), findsOneWidget);
+
+      BannedActionGuard.mockProfileService = null;
     });
   });
 }

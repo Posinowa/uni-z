@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../shared/widgets/states/states.dart';
 import '../models/event_model.dart';
+import '../models/event_status.dart';
 import '../services/event_service.dart';
 import '../widgets/event_card.dart';
 import 'create_event_screen.dart';
@@ -66,7 +68,9 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
+        onPressed: () async {
+          if (!await BannedActionGuard.check(context)) return;
+          if (!context.mounted) return;
           Navigator.push(context, CreateEventScreen.route());
         },
         icon: const Icon(Icons.add),
@@ -140,6 +144,7 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   /// UI testi ve inceleme için örnek etkinlik listesi.
+  // ignore: unused_element
   static List<EventModel> _getSampleEvents() {
     return [
       EventModel(
