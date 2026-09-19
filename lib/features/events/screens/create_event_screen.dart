@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
@@ -146,6 +147,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   /// Formu doğrular ve Firestore'a pending etkinlik olarak kaydeder.
   Future<void> _submitForm() async {
+    // Ban kontrolü — banlı kullanıcı etkinlik oluşturamaz
+    if (!await BannedActionGuard.check(
+      context,
+      userId: _auth.currentUser?.uid,
+      profileService: _profileService,
+      auth: _auth,
+    )) {
+      return;
+    }
+    if (!mounted) return;
+
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_selectedDate == null || _selectedTime == null) {
