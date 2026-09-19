@@ -7,7 +7,15 @@ import 'core/routing/app_router.dart';
 import 'core/routing/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/notifications/services/notification_service.dart';
 import 'firebase_options.dart';
+
+/// Snackbar gösterimi için global ScaffoldMessenger anahtarı.
+///
+/// Foreground bildirim geldiğinde herhangi bir ekrandan
+/// snackbar gösterebilmek için kullanılır.
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +32,25 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // FCM bildirim altyapısını başlat
+  await NotificationService.instance.initialize();
+
+  // Foreground bildirim geldiğinde snackbar göster
+  NotificationService.instance.onForegroundMessage = (message) {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(
+          notification.title ?? notification.body ?? 'Yeni bildirim',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  };
+
   runApp(const UnizMobileApp());
 }
 
@@ -38,6 +65,7 @@ class UnizMobileApp extends StatelessWidget {
         title: "Uni'z",
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        scaffoldMessengerKey: scaffoldMessengerKey,
         initialRoute: AppRoutes.splash,
         onGenerateRoute: AppRouter.onGenerateRoute,
       ),
