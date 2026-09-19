@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Ana akış gönderi türlerini tanımlayan enum.
 ///
 /// Firestore `posts` koleksiyonundaki `type` alanına karşılık gelir.
@@ -19,10 +21,10 @@ enum PostType {
         return PostType.announcement;
       case 'general':
         return PostType.general;
+      case null:
+        return PostType.general;
       default:
-        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
-        assert(
-          typeStr == null,
+        debugPrint(
           'PostType.fromString: bilinmeyen değer "$typeStr" — general olarak döndürüldü.',
         );
         return PostType.general;

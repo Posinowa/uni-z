@@ -26,18 +26,24 @@ service cloud.firestore {
         && request.resource.data.likeCount == 0
         && request.resource.data.reportCount == 0;
 
-      // Post güncelleme: istemciden likeCount ve reportCount alanları
-      // değiştirilemez (sadece transaction/sunucu tarafından değişir).
-      // Kullanıcı kendi postunu diğer alanlar için güncelleyebilir.
+      // Post güncelleme — iki senaryo:
+      // 1. Beğeni transaction'ı: sadece likeCount ve updatedAt değişiyor.
+      //    PostLikeService bu alanları transaction ile günceller; herhangi bir
+      //    auth kullanıcı bu işlemi yapabilir (beğeni başkasının postu için de geçerli).
+      // 2. Yazar kendi postunu düzenliyor: likeCount ve reportCount değişmemeli.
       allow update: if isAuthenticated()
+        && !('reportCount' in request.resource.data.diff(resource.data).affectedKeys())
         && (
-          // likeCount ya hiç değişmiyorsa
-          (!('likeCount' in request.resource.data.diff(resource.data).affectedKeys()))
+          // Senaryo 1: sadece likeCount + updatedAt alanları değişiyor (beğeni)
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['likeCount', 'updatedAt'])
           ||
-          // ya da transaction içinden geliyorsa (authorId değişmemeli)
-          request.resource.data.authorId == resource.data.authorId
-        )
-        && !('reportCount' in request.resource.data.diff(resource.data).affectedKeys());
+          // Senaryo 2: yazar kendi postunu düzenliyor, sayaçlara dokunmuyor
+          (
+            resource.data.authorId == request.auth.uid
+            && !('likeCount' in request.resource.data.diff(resource.data).affectedKeys())
+          )
+        );
 
       // Silme: kapsam dışı (admin panel).
       allow delete: if false;

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Raporun hangi içerik türüne ait olduğunu tanımlayan enum.
 ///
 /// Firestore `reports` koleksiyonundaki `targetType` alanına karşılık gelir.
@@ -26,9 +28,7 @@ enum ReportTargetType {
       case null:
         return ReportTargetType.post;
       default:
-        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
-        assert(
-          false,
+        debugPrint(
           'ReportTargetType.fromString: bilinmeyen değer "$typeStr" — post olarak döndürüldü.',
         );
         return ReportTargetType.post;

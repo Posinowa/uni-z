@@ -298,7 +298,7 @@ class _ActionBar extends StatelessWidget {
   }
 }
 
-/// Aksiyon butonu — ikon g\u00f6sterir.
+/// Aksiyon butonu — ikon gösterir.
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Raporun inceleme durumunu tanımlayan enum.
 ///
 /// Firestore `reports` koleksiyonundaki `status` alanına karşılık gelir.
@@ -26,9 +28,7 @@ enum ReportStatus {
       case null:
         return ReportStatus.open;
       default:
-        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
-        assert(
-          false,
+        debugPrint(
           'ReportStatus.fromString: bilinmeyen değer "$statusStr" — open olarak döndürüldü.',
         );
         return ReportStatus.open;
