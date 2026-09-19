@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Ana akış gönderi durumlarını tanımlayan enum.
 ///
 /// Firestore `posts` koleksiyonundaki `status` alanına karşılık gelir.
@@ -22,11 +20,7 @@ enum PostStatus {
       case 'published':
         return PostStatus.published;
       case null:
-        return PostStatus.published;
       default:
-        debugPrint(
-          'PostStatus.fromString: bilinmeyen değer "$statusStr" — published olarak döndürüldü.',
-        );
         return PostStatus.published;
     }
   }
