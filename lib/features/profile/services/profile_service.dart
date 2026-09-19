@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/services/firestore_service.dart';
 import '../models/user_profile.dart';
@@ -66,6 +68,19 @@ class ProfileService extends FirestoreService {
         return null;
       }
       return UserProfile.fromMap(snapshot.data()!, id: snapshot.id);
+    });
+  }
+
+  /// FCM token'ı kullanıcı belgesindeki `fcmTokens` array'ine ekler.
+  ///
+  /// Firestore `arrayUnion` kullanır — aynı token zaten varsa tekrar eklenmez.
+  /// [userId] veya [token] boşsa işlem yapılmaz.
+  /// İşlem sırasında hata oluşursa [FirebaseException] fırlatır.
+  Future<void> addFcmToken(String userId, String token) async {
+    if (userId.trim().isEmpty || token.trim().isEmpty) return;
+
+    await collection.doc(userId).update({
+      'fcmTokens': FieldValue.arrayUnion([token]),
     });
   }
 }
