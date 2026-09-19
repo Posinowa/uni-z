@@ -18,6 +18,8 @@ enum PostStatus {
       case 'removed':
         return PostStatus.removed;
       case 'published':
+        return PostStatus.published;
+      case null:
       default:
         return PostStatus.published;
     }

@@ -18,6 +18,8 @@ enum PostType {
       case 'announcement':
         return PostType.announcement;
       case 'general':
+        return PostType.general;
+      case null:
       default:
         return PostType.general;
     }
