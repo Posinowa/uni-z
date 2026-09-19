@@ -129,49 +129,4 @@ class _EventsScreenState extends State<EventsScreen> {
     );
   }
 
-  /// UI testi ve inceleme için örnek etkinlik listesi.
-  static List<EventModel> _getSampleEvents() {
-    return [
-      EventModel(
-        id: 'event-1',
-        title: 'Yazılım & Teknoloji Zirvesi 2026',
-        description:
-            'Sektörün lider mühendisleri ve teknoloji liderleri kampüste! Yapay zeka, bulut bilişim, mobil geliştirme ve modern yazılım mimarileri üzerine konuşmalar, interaktif workshoplar ve staj imkanları sizi bekliyor. Katılım ücretsiz olup tüm üniversite öğrencilerine açıktır. Kayıt gereklidir.',
-        universityId: 'itu',
-        location: 'Süleyman Demirel Kültür Merkezi, Maslak',
-        eventDate: DateTime(2026, 10, 15, 10, 30),
-        imageUrl: null, // Placeholder test etmek için
-        createdBy: 'user-itu-1',
-        organizerName: 'İTÜ ACM Öğrenci Kulübü',
-        status: EventStatus.approved,
-      ),
-      EventModel(
-        id: 'event-2',
-        title: 'Sonbahar Kariyer & Staj Fuarı',
-        description:
-            '50+ kurumsal firma ile doğrudan tanışma ve staj mülakatları. CV hazırlama atölyeleri, simülasyon mülakatlar ve networking seansları ile kariyerinize güçlü bir başlangıç yapın.',
-        universityId: 'boun',
-        location: 'Albert Long Hall, Güney Kampüs',
-        eventDate: DateTime(2026, 10, 22, 14, 00),
-        imageUrl:
-            'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-        createdBy: 'user-boun-1',
-        organizerName: 'Kariyer ve Gelişim Kulübü',
-        status: EventStatus.approved,
-      ),
-      EventModel(
-        id: 'event-3',
-        title: 'Yapay Zeka ve Büyük Dil Modelleri Çalıştayı',
-        description:
-            'Hands-on yapay zeka atölyesi ve model geliştirme oturumu. Kendi dil modellerinizi eğitme ve pratik uygulama yöntemlerini öğrenin. Katılımcıların dizüstü bilgisayarlarını getirmeleri tavsiye edilir.',
-        universityId: 'odtu',
-        location: 'Bilgisayar Mühendisliği Amfisi A-101',
-        eventDate: DateTime(2026, 11, 5, 13, 00),
-        imageUrl: null,
-        createdBy: 'user-odtu-1',
-        organizerName: 'IEEE Öğrenci Kolu',
-        status: EventStatus.approved,
-      ),
-    ];
-  }
 }
