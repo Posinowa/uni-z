@@ -95,6 +95,7 @@ void main() {
         AppRoutes.profileCompletion: (_) =>
             const Scaffold(body: Text('Profile Completion Test')),
         AppRoutes.home: (_) => const Scaffold(body: Text('Home Screen Test')),
+        AppRoutes.banned: (_) => const Scaffold(body: Text('Banned Screen Test')),
       },
       initialRoute: AppRoutes.splash,
     );
@@ -140,6 +141,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Home Screen Test'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Giriş yapmış ve banlı olan kullanıcıyı /banned ekranına yönlendirir',
+        (WidgetTester tester) async {
+      final fakeAuth = FakeAuthService(initialUser: FakeUser(uid: 'user_123'));
+      final bannedProfile = testProfile.copyWith(isBanned: true);
+      final fakeProfile = FakeProfileService(returnProfile: bannedProfile);
+
+      await tester.pumpWidget(
+        createTestWidget(authService: fakeAuth, profileService: fakeProfile),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Banned Screen Test'), findsOneWidget);
+      expect(find.text('Home Screen Test'), findsNothing);
     });
 
     testWidgets(
