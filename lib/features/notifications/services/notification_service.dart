@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
 ///
@@ -47,30 +46,27 @@ class NotificationService {
   /// Sırasıyla:
   /// 1. Kullanıcıdan bildirim izni ister (Android 13+ ve iOS).
   /// 2. Arka plan mesaj handler'ını tanımlar.
-  /// 3. FCM token'ı alır ve debug modda konsola basar.
+  /// 3. FCM token'ı alır.
   /// 4. Foreground mesaj dinleyicisini kurar.
   Future<void> initialize() async {
-    final settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    try {
+      await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
 
-    if (kDebugMode) {
-      debugPrint('FCM izin durumu: ${settings.authorizationStatus}');
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      await getToken();
+
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    } catch (_) {
+      // Firebase başlatılmamışsa veya test ortamındaysa sessizce yakalanır
     }
-
-    FirebaseMessaging.onBackgroundMessage(
-      _firebaseMessagingBackgroundHandler,
-    );
-
-    final token = await getToken();
-    if (kDebugMode) {
-      debugPrint('FCM Token: $token');
-    }
-
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
   }
 
   /// Güncel FCM token'ı döndürür.
@@ -79,10 +75,7 @@ class NotificationService {
   Future<String?> getToken() async {
     try {
       return await _fcm.getToken();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('FCM token alınamadı: $e');
-      }
+    } catch (_) {
       return null;
     }
   }
@@ -90,7 +83,7 @@ class NotificationService {
   /// Kullanıcının FCM token'ını Firestore'a kaydeder ve token refresh listener'ı başlatır.
   ///
   /// [userId] geçerli bir Firebase Auth UID olmalıdır.
-  /// Token Firestore `users/{userId}.fcmTokens` array'ine [ProfileService.addFcmToken] ile eklenir.
+  /// Token Firestore `users/{userId}.fcmTokens` array'ine [saveCallback] ile eklenir.
   /// `arrayUnion` kullanıldığı için aynı token tekrar eklenmez.
   ///
   /// Ayrıca [FirebaseMessaging.instance.onTokenRefresh] dinlenerek
@@ -113,12 +106,12 @@ class NotificationService {
 
       // Token yenilendiğinde otomatik güncelle
       _tokenRefreshSub = _fcm.onTokenRefresh.listen((newToken) async {
-        await saveCallback(userId, newToken);
+        try {
+          await saveCallback(userId, newToken);
+        } catch (_) {}
       });
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('saveTokenForUser başarısız: $e');
-      }
+    } catch (_) {
+      // Hata durumunda sessizce yakalanır
     }
   }
 
@@ -132,9 +125,6 @@ class NotificationService {
 
   /// Foreground'da gelen mesajları işler.
   void _handleForegroundMessage(RemoteMessage message) {
-    if (kDebugMode) {
-      debugPrint('Foreground mesaj alındı: ${message.notification?.title}');
-    }
     onForegroundMessage?.call(message);
   }
 }

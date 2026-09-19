@@ -169,18 +169,10 @@ class AuthProvider extends ChangeNotifier {
           saveCallback: (userId, token) async {
             try {
               await ProfileService().addFcmToken(userId, token);
-            } catch (e) {
-              if (kDebugMode) {
-                debugPrint('FCM token kaydedilemedi: $e');
-              }
-            }
+            } catch (_) {}
           },
         );
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('NotificationService erişilemedi: $e');
-        }
-      }
+      } catch (_) {}
     } else {
       // Çıkış yapıldı — token refresh listener'ı iptal et
       try {
