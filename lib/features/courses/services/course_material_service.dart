@@ -30,7 +30,6 @@ class CourseMaterialService {
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
-
   /// Yeni ders materyalini Firestore'a pending olarak kaydeder.
   ///
   /// [courseId]: Materyalin ait olduğu ders ID'si.
