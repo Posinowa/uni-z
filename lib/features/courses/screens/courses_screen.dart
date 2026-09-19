@@ -9,7 +9,6 @@ import '../models/course_model.dart';
 import '../services/course_service.dart';
 import '../widgets/course_card.dart';
 import '../widgets/course_detail_args.dart';
-import '../widgets/course_empty_state.dart';
 import '../widgets/course_search_bar.dart';
 import 'course_detail_screen.dart';
 import 'suggest_course_screen.dart';
@@ -19,7 +18,7 @@ import 'suggest_course_screen.dart';
 /// Firestore üzerinden `CourseService.watchApprovedCourses` stream'ine bağlanır.
 /// - Yükleme durumu için [AppLoadingView]
 /// - Hata durumu için [AppErrorState]
-/// - Boş liste veya sonuç bulunamama durumu için [AppEmptyState] / [CourseEmptyState]
+/// - Boş liste veya sonuç bulunamama durumu için [AppEmptyState]
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({
     this.courseService,
@@ -225,10 +224,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
         // Üniversiteye ait hiç onaylı ders yoksa
         if (allApprovedCourses.isEmpty) {
-          return const AppEmptyState(
+          return AppEmptyState(
             icon: Icons.menu_book_outlined,
             title: 'Henüz Ders Eklenmemiş',
-            description: 'Üniversitenize ait onaylanmış bir ders bulunmamaktadır.',
+            description:
+                'Üniversitenize ait onaylanmış bir ders bulunmamaktadır. İlk dersi sen önererek başlayabilirsin.',
+            actionText: 'Ders Öner',
+            actionIcon: Icons.add,
+            onActionPressed: _onAddCoursePressed,
           );
         }
 
@@ -237,10 +240,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
         // Arama sonucunda ders bulunamadıysa
         if (filteredCourses.isEmpty) {
-          return CourseEmptyState(
+          return AppEmptyState(
+            icon: Icons.search_off_rounded,
             title: 'Ders Bulunamadı',
             description: '"$_searchQuery" aramasına uygun ders bulunamadı.',
             actionText: 'Aramayı Temizle',
+            actionIcon: Icons.clear,
             onActionPressed: () {
               _searchController.clear();
               setState(() => _searchQuery = '');

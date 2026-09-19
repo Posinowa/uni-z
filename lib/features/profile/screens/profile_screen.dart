@@ -2,8 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/states/states.dart';
+import '../../feed/screens/create_text_post_screen.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 import '../widgets/logout_button.dart';
@@ -154,6 +157,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildInfoCard(),
             const SizedBox(height: AppSpacing.xxl),
 
+            // ── Paylaşımlarım (User Posts Placeholder) ──
+            _buildUserPostsSection(),
+            const SizedBox(height: AppSpacing.xxl),
+
             // ── Çıkış ──
             const LogoutButton(),
             const SizedBox(height: AppSpacing.xxl),
@@ -280,5 +287,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
     ];
     return '${months[date.month - 1]} ${date.year}';
+  }
+
+  /// Kullanıcının paylaşımları için placeholder alanı.
+  Widget _buildUserPostsSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ProfileFormSection(title: 'Paylaşımlarım'),
+          const SizedBox(height: AppSpacing.md),
+          AppEmptyState(
+            icon: Icons.article_outlined,
+            title: 'Henüz bir paylaşımın yok',
+            description:
+                'Düşüncelerini ve kampüs gelişmelerini paylaşarak akışa katılabilirsin.',
+            actionText: 'İlk Paylaşımı Sen Yap',
+            actionIcon: Icons.add_circle_outline,
+            onActionPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CreateTextPostScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
