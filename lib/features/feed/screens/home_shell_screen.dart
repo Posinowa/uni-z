@@ -27,7 +27,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   /// Her sekmeye karşılık gelen ekranlar listesi.
   List<Widget> get _screens => [
-        const FeedScreen(),
+        FeedScreen(
+          onNavigateToCreatePost: () {
+            setState(() => _currentIndex = 2);
+          },
+        ),
         const CoursesScreen(),
         CreateTextPostScreen(
           onPostCreated: () {
