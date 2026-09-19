@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../notifications/services/notification_service.dart';
+import '../../profile/services/profile_service.dart';
 import '../services/auth_service.dart';
 
 /// Auth durumunu yöneten Provider sınıfı.
@@ -151,9 +153,32 @@ class AuthProvider extends ChangeNotifier {
   // ── Private Yardımcılar ──
 
   /// Auth state değişikliklerinde çağrılır.
+  ///
+  /// Kullanıcı giriş yaptığında FCM token'ı Firestore'a kaydeder.
+  /// Kullanıcı çıkış yaptığında token refresh listener'ı iptal eder.
   void _onAuthChanged(User? user) {
     _currentUser = user;
     notifyListeners();
+
+    if (user != null) {
+      // Giriş yapıldı — FCM token'ı Firestore'a kaydet
+      // try/catch: Firebase init olmayan test ortamında crash önlenir
+      try {
+        NotificationService.instance.saveTokenForUser(
+          user.uid,
+          saveCallback: (userId, token) async {
+            try {
+              await ProfileService().addFcmToken(userId, token);
+            } catch (_) {}
+          },
+        );
+      } catch (_) {}
+    } else {
+      // Çıkış yapıldı — token refresh listener'ı iptal et
+      try {
+        NotificationService.instance.disposeForUser();
+      } catch (_) {}
+    }
   }
 
   void _setLoading(bool value) {
