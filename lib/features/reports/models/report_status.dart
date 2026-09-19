@@ -26,6 +26,11 @@ enum ReportStatus {
       case null:
         return ReportStatus.open;
       default:
+        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
+        assert(
+          false,
+          'ReportStatus.fromString: bilinmeyen değer "$statusStr" — open olarak döndürüldü.',
+        );
         return ReportStatus.open;
     }
   }

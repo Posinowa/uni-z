@@ -18,7 +18,13 @@ enum PostStatus {
       case 'removed':
         return PostStatus.removed;
       case 'published':
+        return PostStatus.published;
       default:
+        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
+        assert(
+          statusStr == null,
+          'PostStatus.fromString: bilinmeyen değer "$statusStr" — published olarak döndürüldü.',
+        );
         return PostStatus.published;
     }
   }

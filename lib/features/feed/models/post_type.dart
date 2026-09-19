@@ -18,7 +18,13 @@ enum PostType {
       case 'announcement':
         return PostType.announcement;
       case 'general':
+        return PostType.general;
       default:
+        // Bilinmeyen değer geldiğinde geliştirici debug modda uyarılır.
+        assert(
+          typeStr == null,
+          'PostType.fromString: bilinmeyen değer "$typeStr" — general olarak döndürüldü.',
+        );
         return PostType.general;
     }
   }

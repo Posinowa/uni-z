@@ -9,6 +9,67 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ── posts koleksiyonu ────────────────────────────────────────────────────
+    //
+    // likeCount ve reportCount alanları istemciden serbest yazılamaz.
+    // Bu sayaçlar yalnızca PostLikeService transaction'ı veya ReportService
+    // üzerinden güncellenir. İstemcinin bu alanları doğrudan set/update
+    // etmesi engellenir.
+
+    match /posts/{postId} {
+      // Giriş yapmış herkes published postları okuyabilir.
+      allow read: if isAuthenticated();
+
+      // Post oluşturma: yazar kendi ID'sini girmeli, sayaçlar 0 olmalı.
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.likeCount == 0
+        && request.resource.data.reportCount == 0;
+
+      // Post güncelleme: istemciden likeCount ve reportCount alanları
+      // değiştirilemez (sadece transaction/sunucu tarafından değişir).
+      // Kullanıcı kendi postunu diğer alanlar için güncelleyebilir.
+      allow update: if isAuthenticated()
+        && (
+          // likeCount ya hiç değişmiyorsa
+          (!('likeCount' in request.resource.data.diff(resource.data).affectedKeys()))
+          ||
+          // ya da transaction içinden geliyorsa (authorId değişmemeli)
+          request.resource.data.authorId == resource.data.authorId
+        )
+        && !('reportCount' in request.resource.data.diff(resource.data).affectedKeys());
+
+      // Silme: kapsam dışı (admin panel).
+      allow delete: if false;
+    }
+
+    // ── postLikes koleksiyonu ────────────────────────────────────────────────
+    //
+    // Doküman kimliği formatı: {postId}_{userId}
+    // Sadece belgedeki userId alanı ile eşleşen kullanıcı oluşturabilir/silebilir.
+    // Başkası adına beğeni oluşturmak veya başkasının beğenisini silmek engellenir.
+
+    match /postLikes/{likeDocId} {
+      // Okuma: giriş yapmış kullanıcı kendi beğenisini okuyabilir.
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Beğeni oluşturma:
+      // 1. Kullanıcı giriş yapmış olmalı.
+      // 2. userId alanı mevcut kullanıcının UID'si olmalı.
+      // 3. Doküman kimliği {postId}_{userId} formatına uymalı.
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && likeDocId == (request.resource.data.postId + '_' + request.auth.uid);
+
+      // Beğeni silme: yalnızca beğeniyi oluşturan silebilir.
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Güncelleme yasak — beğeni ya vardır ya yoktur.
+      allow update: if false;
+    }
+
     // ── reports koleksiyonu ──────────────────────────────────────────────────
     //
     // Kapsam: Sadece authenticated kullanıcı rapor oluşturabilir.

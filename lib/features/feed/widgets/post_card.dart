@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../models/feed_post.dart';
+import '../widgets/post_like_button.dart';
 import '../../reports/widgets/report_bottom_sheet.dart';
 
 /// Ana akışta gösterilecek gönderi kartı bileşeni.
@@ -66,7 +67,7 @@ class PostCard extends StatelessWidget {
             _ActionBar(
               postId: post.id,
               likeCount: post.likeCount,
-              currentUserId: currentUserId,
+              currentUserId: currentUserId ?? '',
             ),
           ],
         ),
@@ -252,36 +253,34 @@ class _PostImage extends StatelessWidget {
   }
 }
 
-/// Beğeni sayısı ve rapor butonunu gösterir.
+/// Beğeni butonu (PostLikeButton) ve rapor butonunu gösterir.
 ///
-/// [currentUserId] boş veya null ise rapor butonu gizlenir.
+/// [currentUserId] boş ise rapor butonu gizlenir; PostLikeButton kendi içinde
+/// giriş yapmamış kullanıcıya uyarı gösterir.
 class _ActionBar extends StatelessWidget {
   final String postId;
   final int likeCount;
 
   /// Oturum açmış kullanıcının kimliği. Boşsa rapor butonu gösterilmez.
-  final String? currentUserId;
+  final String currentUserId;
 
   const _ActionBar({
     required this.postId,
     required this.likeCount,
-    this.currentUserId,
+    required this.currentUserId,
   });
 
   @override
   Widget build(BuildContext context) {
-    final canReport =
-        currentUserId != null && currentUserId!.trim().isNotEmpty;
+    final canReport = currentUserId.trim().isNotEmpty;
 
     return Row(
       children: [
-        // Beğeni butonu + sayısı
-        _ActionButton(
-          icon: Icons.favorite_border,
-          label: likeCount > 0 ? '$likeCount' : null,
-          onPressed: () {
-            // Beğeni tıklama bu issue kapsamında çalışmayacak.
-          },
+        // Beğeni butonu — PostLikeButton kendi durumunu ve animasyonunu yönetir.
+        PostLikeButton(
+          postId: postId,
+          userId: currentUserId,
+          initialLikeCount: likeCount,
         ),
 
         const Spacer(),
@@ -299,15 +298,13 @@ class _ActionBar extends StatelessWidget {
   }
 }
 
-/// Tekrar kullanılabilir aksiyon butonu (ikon + opsiyonel etiket).
+/// Aksiyon butonu — ikon g\u00f6sterir.
 class _ActionButton extends StatelessWidget {
   final IconData icon;
-  final String? label;
   final VoidCallback onPressed;
 
   const _ActionButton({
     required this.icon,
-    this.label,
     required this.onPressed,
   });
 
@@ -321,26 +318,10 @@ class _ActionButton extends StatelessWidget {
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.xs,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-            if (label != null) ...[
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                label!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ],
+        child: Icon(
+          icon,
+          size: 20,
+          color: AppColors.textSecondary,
         ),
       ),
     );
