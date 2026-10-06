@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../shared/widgets/states/states.dart';
 import '../../profile/services/profile_service.dart';
 import '../models/course_model.dart';
@@ -124,7 +125,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  void _onAddCoursePressed() {
+  Future<void> _onAddCoursePressed() async {
+    if (!await BannedActionGuard.check(context)) return;
+    if (!mounted) return;
     Navigator.push(context, SuggestCourseScreen.route());
   }
 
