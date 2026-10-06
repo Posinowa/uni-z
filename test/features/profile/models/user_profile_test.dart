@@ -22,6 +22,7 @@ void main() {
       'role': 'student',
       'isVerifiedStudent': true,
       'isBanned': false,
+      'banReason': 'Spam içerik',
       'fcmTokens': ['token_1', 'token_2'],
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
@@ -44,6 +45,7 @@ void main() {
       expect(user.role, UserRole.student);
       expect(user.isVerifiedStudent, true);
       expect(user.isBanned, false);
+      expect(user.banReason, 'Spam içerik');
       expect(user.fcmTokens, ['token_1', 'token_2']);
       expect(user.createdAt, now);
       expect(user.updatedAt, now);
@@ -66,12 +68,14 @@ void main() {
         fullName: 'Mehmet Yılmaz',
         role: UserRole.admin,
         isBanned: true,
+        banReason: 'Hesap incelemede',
       );
 
       expect(updatedUser.id, user.id);
       expect(updatedUser.fullName, 'Mehmet Yılmaz');
       expect(updatedUser.role, UserRole.admin);
       expect(updatedUser.isBanned, true);
+      expect(updatedUser.banReason, 'Hesap incelemede');
       expect(updatedUser.email, user.email);
       expect(updatedUser.phone, '+905551112233'); // phone verilmediğinde eski değer korunur
     });
@@ -102,6 +106,7 @@ void main() {
       expect(user.role, UserRole.student);
       expect(user.isVerifiedStudent, false);
       expect(user.isBanned, false);
+      expect(user.banReason, isNull);
       expect(user.fcmTokens, isEmpty);
       expect(user.createdAt, isNull);
       expect(user.updatedAt, isNull);
