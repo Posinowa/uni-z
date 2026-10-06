@@ -267,5 +267,17 @@ void main() {
         throwsA(isA<FirebaseException>()),
       );
     });
+
+    test('isUserBanned kullanıcının ban durumunu doğru döner', () async {
+      await profileService.createUserProfile(testProfile);
+      expect(await profileService.isUserBanned('usr_123'), isFalse);
+
+      final bannedProfile = testProfile.copyWith(isBanned: true);
+      await profileService.updateUserProfile(bannedProfile);
+      expect(await profileService.isUserBanned('usr_123'), isTrue);
+
+      expect(await profileService.isUserBanned('non_existent_user'), isFalse);
+      expect(await profileService.isUserBanned(''), isFalse);
+    });
   });
 }
