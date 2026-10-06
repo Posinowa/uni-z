@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../core/services/mock_storage_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
@@ -99,6 +100,17 @@ class _CreateTextPostScreenState extends State<CreateTextPostScreen> {
       );
       return;
     }
+
+    // Ban kontrolü — banlı kullanıcı post paylaşamaz
+    if (!await BannedActionGuard.check(
+      context,
+      userId: currentUser.uid,
+      profileService: _profileService,
+      auth: _auth,
+    )) {
+      return;
+    }
+    if (!mounted) return;
 
     setState(() => _isLoading = true);
 

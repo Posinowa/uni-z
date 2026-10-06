@@ -15,8 +15,9 @@ import '../services/auth_service.dart';
 ///
 /// Uygulama açıldığında kullanıcının oturum durumunu kontrol eder:
 /// - Oturum açmamışsa -> [AppRoutes.login]
-/// - Oturum açmış, profili varsa -> [AppRoutes.home]
 /// - Oturum açmış, profili yoksa -> [AppRoutes.profileCompletion]
+/// - Oturum açmış, kullanıcı banlıysa -> [AppRoutes.banned]
+/// - Oturum açmış, profili varsa -> [AppRoutes.home]
 /// - Profil okuma hatasında -> Hata durumu gösterilir, kullanıcı körlemesine login'e atılmaz.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({
@@ -54,7 +55,8 @@ class _SplashScreenState extends State<SplashScreen> {
   /// 2. Kullanıcı yoksa -> /login
   /// 3. Kullanıcı varsa Firestore'dan profil kontrol edilir.
   /// 4. Profil yoksa -> /profile-completion
-  /// 5. Profil varsa -> /home
+  /// 5. Kullanıcı banlıysa -> /banned
+  /// 6. Profil varsa ve banlı değilse -> /home
   /// 6. Hata durumunda:
   ///    - Kullanıcı oturum açmamışsa -> /login
   ///    - Kullanıcı oturum açmış fakat profil okunamadıysa -> Hata ekranı (retry ve güvenli çıkış) ve SnackBar gösterilir.
@@ -89,6 +91,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (profile == null) {
         Navigator.pushReplacementNamed(context, AppRoutes.profileCompletion);
+      } else if (profile.isBanned) {
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.banned,
+          arguments: profile.banReason,
+        );
       } else {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }

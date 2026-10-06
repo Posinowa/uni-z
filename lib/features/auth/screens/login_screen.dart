@@ -48,8 +48,9 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Giriş yap butonuna basıldığında çalışır.
   ///
   /// Başarılı giriş sonrası Firestore profil kontrol edilir:
-  /// - Profil varsa -> /home
   /// - Profil yoksa -> /profile-completion
+  /// - Kullanıcı banlıysa -> /banned
+  /// - Profil varsa ve banlı değilse -> /home
   Future<void> _onLoginPressed() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -89,6 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           AppRoutes.profileCompletion,
           (route) => false,
+        );
+      } else if (profile.isBanned) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.banned,
+          (route) => false,
+          arguments: profile.banReason,
         );
       } else {
         Navigator.pushNamedAndRemoveUntil(

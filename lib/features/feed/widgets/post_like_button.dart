@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../services/post_like_service.dart';
 
@@ -103,6 +104,11 @@ class _PostLikeButtonState extends State<PostLikeButton> {
           backgroundColor: AppColors.warning,
         ),
       );
+      return;
+    }
+
+    // Ban kontrolü — banlı kullanıcı beğeni yapamaz
+    if (!await BannedActionGuard.check(context, userId: widget.userId)) {
       return;
     }
 
