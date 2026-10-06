@@ -101,13 +101,31 @@ class _EventsScreenState extends State<EventsScreen> {
 
           // ─── Boş Durum ────────────────────────────────────────
           if (events.isEmpty) {
-            return AppEmptyState(
-              icon: Icons.event_busy_outlined,
-              title: 'Henüz etkinlik yok',
-              description:
-                  'Yakında yeni kampüs etkinlikleri burada listelenecektir.',
-              actionText: 'Yenile',
-              onActionPressed: _retry,
+            return RefreshIndicator(
+              color: AppColors.categoryEvents,
+              onRefresh: () async {
+                _retry();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: AppEmptyState(
+                      icon: Icons.event_busy_outlined,
+                      title: 'Henüz etkinlik yok',
+                      description:
+                          'Yakında yeni kampüs etkinlikleri burada listelenecektir. Yeni bir etkinlik önererek topluluğu canlandırabilirsin.',
+                      actionText: 'Etkinlik Ekle',
+                      actionIcon: Icons.add,
+                      actionColor: AppColors.categoryEvents,
+                      onActionPressed: () {
+                        Navigator.push(context, CreateEventScreen.route());
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 

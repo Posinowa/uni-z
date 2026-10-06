@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../shared/widgets/states/states.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/widgets/logout_button.dart';
+import 'create_text_post_screen.dart';
 import '../models/feed_post.dart';
 import '../services/feed_service.dart';
 import '../widgets/post_card.dart';
@@ -18,7 +19,13 @@ import '../widgets/post_card.dart';
 /// - **Empty:** Hiç gönderi yoksa bilgilendirme mesajı gösterir.
 /// - **Error:** Firestore hatasında hata mesajı ve tekrar dene butonu gösterir.
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  /// Boş durumdaki aksiyon butonuna basıldığında tetiklenecek opsiyonel geri çağırma.
+  final VoidCallback? onNavigateToCreatePost;
+
+  const FeedScreen({
+    this.onNavigateToCreatePost,
+    super.key,
+  });
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -77,10 +84,36 @@ class _FeedScreenState extends State<FeedScreen> {
 
           // ─── Boş Durum ────────────────────────────────────────
           if (posts.isEmpty) {
-            return const AppEmptyState(
-              icon: Icons.dynamic_feed_outlined,
-              title: 'Henüz gönderi yok',
-              description: 'İlk paylaşımı sen yap!',
+            return RefreshIndicator(
+              onRefresh: () async => _retry(),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: AppEmptyState(
+                      icon: Icons.dynamic_feed_outlined,
+                      title: 'Henüz gönderi yok',
+                      description:
+                          'İlk paylaşımı sen yap ve kampüsün sesini duyur!',
+                      actionText: 'İlk Paylaşımı Sen Yap',
+                      actionIcon: Icons.add_circle_outline,
+                      onActionPressed: () {
+                        if (widget.onNavigateToCreatePost != null) {
+                          widget.onNavigateToCreatePost!();
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateTextPostScreen(),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
