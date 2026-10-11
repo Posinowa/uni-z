@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -34,8 +33,8 @@ class MaterialCard extends StatelessWidget {
   /// Dosya uzantısı: pdf, jpg, png vb.
   final String fileType;
 
-  /// Yüklenme zamanı (Firestore Timestamp).
-  final Timestamp? createdAt;
+  /// Yüklenme zamanı.
+  final DateTime? createdAt;
 
   /// Rapor butonuna basıldığında tetiklenecek fonksiyon.
   final VoidCallback onReportTap;
@@ -68,10 +67,9 @@ class MaterialCard extends StatelessWidget {
     }
   }
 
-  /// Timestamp'i okunabilir tarih metnine çevirir.
-  String _formatDate(Timestamp? ts) {
-    if (ts == null) return '';
-    final date = ts.toDate();
+  /// DateTime'ı okunabilir tarih metnine çevirir.
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
     return '${date.day.toString().padLeft(2, '0')}.'
         '${date.month.toString().padLeft(2, '0')}.'
         '${date.year}';

@@ -170,6 +170,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 children: [
                   // Sekme 1: Materyaller
                   CourseMaterialsTab(
+                    courseId: args.courseId ?? '',
                     onUploadPressed: _onUploadMaterialPressed,
                   ),
 
