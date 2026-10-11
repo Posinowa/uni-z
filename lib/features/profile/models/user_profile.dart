@@ -19,6 +19,7 @@ class UserProfile {
   final UserRole role;
   final bool isVerifiedStudent;
   final bool isBanned;
+  final String? banReason;
   final List<String> fcmTokens;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -38,6 +39,7 @@ class UserProfile {
     this.role = UserRole.student,
     this.isVerifiedStudent = false,
     this.isBanned = false,
+    this.banReason,
     this.fcmTokens = const [],
     this.createdAt,
     this.updatedAt,
@@ -61,6 +63,7 @@ class UserProfile {
       role: UserRole.fromString(map['role'] as String?),
       isVerifiedStudent: map['isVerifiedStudent'] as bool? ?? false,
       isBanned: map['isBanned'] as bool? ?? false,
+      banReason: map['banReason'] as String?,
       fcmTokens: (map['fcmTokens'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -87,6 +90,7 @@ class UserProfile {
       'role': role.value,
       'isVerifiedStudent': isVerifiedStudent,
       'isBanned': isBanned,
+      'banReason': banReason,
       'fcmTokens': fcmTokens,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
@@ -111,6 +115,7 @@ class UserProfile {
     UserRole? role,
     bool? isVerifiedStudent,
     bool? isBanned,
+    Object? banReason = _sentinel,
     List<String>? fcmTokens,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -133,6 +138,9 @@ class UserProfile {
       role: role ?? this.role,
       isVerifiedStudent: isVerifiedStudent ?? this.isVerifiedStudent,
       isBanned: isBanned ?? this.isBanned,
+      banReason: identical(banReason, _sentinel)
+          ? this.banReason
+          : (banReason as String?),
       fcmTokens: fcmTokens ?? this.fcmTokens,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

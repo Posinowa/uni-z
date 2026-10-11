@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/report_model.dart';
 import '../models/report_reason.dart';
@@ -38,7 +39,11 @@ class ReportBottomSheet extends StatefulWidget {
     required String postId,
     ReportService? reportService,
     void Function(Object error, StackTrace? stackTrace)? onError,
-  }) {
+  }) async {
+    // Ban kontrolü — banlı kullanıcı rapor gönderemez
+    if (!await BannedActionGuard.check(context)) return;
+
+    if (!context.mounted) return;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -84,6 +89,12 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
     // Servis katmanı zaten kontrol eder; UI'da da güvenlik katmanı.
     if (currentUserId.isEmpty) {
       Navigator.of(context).pop();
+      return;
+    }
+
+    // Ban kontrolü — banlı kullanıcı rapor gönderemez
+    if (!await BannedActionGuard.check(context, userId: currentUserId)) {
+      if (mounted) Navigator.of(context).pop();
       return;
     }
 

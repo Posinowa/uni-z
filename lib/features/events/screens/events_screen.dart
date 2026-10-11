@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../shared/widgets/states/states.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
@@ -66,7 +67,9 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
+        onPressed: () async {
+          if (!await BannedActionGuard.check(context)) return;
+          if (!context.mounted) return;
           Navigator.push(context, CreateEventScreen.route());
         },
         icon: const Icon(Icons.add),
@@ -98,13 +101,31 @@ class _EventsScreenState extends State<EventsScreen> {
 
           // ─── Boş Durum ────────────────────────────────────────
           if (events.isEmpty) {
-            return AppEmptyState(
-              icon: Icons.event_busy_outlined,
-              title: 'Henüz etkinlik yok',
-              description:
-                  'Yakında yeni kampüs etkinlikleri burada listelenecektir.',
-              actionText: 'Yenile',
-              onActionPressed: _retry,
+            return RefreshIndicator(
+              color: AppColors.categoryEvents,
+              onRefresh: () async {
+                _retry();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: AppEmptyState(
+                      icon: Icons.event_busy_outlined,
+                      title: 'Henüz etkinlik yok',
+                      description:
+                          'Yakında yeni kampüs etkinlikleri burada listelenecektir. Yeni bir etkinlik önererek topluluğu canlandırabilirsin.',
+                      actionText: 'Etkinlik Ekle',
+                      actionIcon: Icons.add,
+                      actionColor: AppColors.categoryEvents,
+                      onActionPressed: () {
+                        Navigator.push(context, CreateEventScreen.route());
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -138,5 +159,6 @@ class _EventsScreenState extends State<EventsScreen> {
       ),
     );
   }
+
 
 }
