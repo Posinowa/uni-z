@@ -10,13 +10,22 @@ import '../models/report_reason.dart';
 import '../models/report_target_type.dart';
 import '../services/report_service.dart';
 
-/// Bir içeriği raporlamak için kullanıcıya sebep seçtiren bottom sheet.
+/// Bir içeriği (gönderi, materyal, etkinlik vb.) raporlamak için
+/// kullanıcıya sebep seçtiren bottom sheet.
 ///
 /// Kullanıcı giriş yapmamışsa bottom sheet açılmamalıdır.
-/// Açılırken [postId] geçilmesi zorunludur.
 class ReportBottomSheet extends StatefulWidget {
-  /// Raporlanacak post'un Firestore belgesi kimliği.
-  final String postId;
+  /// Raporlanacak içeriğin Firestore belgesi kimliği.
+  final String targetId;
+
+  /// Rapor hedef tipi (post, material, event, user).
+  final ReportTargetType targetType;
+
+  /// Bottom sheet başlığı (opsiyonel; null ise targetType'a göre belirlenir).
+  final String? title;
+
+  /// Geriye dönük uyumluluk için postId getter'ı.
+  String get postId => targetId;
 
   /// Rapor servis enjeksiyonu. Test edilebilirlik için dışarıdan geçilebilir.
   final ReportService? reportService;
@@ -26,22 +35,65 @@ class ReportBottomSheet extends StatefulWidget {
 
   const ReportBottomSheet({
     super.key,
-    required this.postId,
+    String? postId,
+    String? targetId,
+    this.targetType = ReportTargetType.post,
+    this.title,
     this.reportService,
     this.onError,
-  });
+  })  : targetId = targetId ?? postId ?? '';
 
   /// Bottom sheet'i gösterir.
   ///
-  /// Dışarıdan çağrılacak yardımcı metod.
+  /// Ön kontroller:
+  /// 1. Banlı kullanıcı kontrolü ([BannedActionGuard]).
+  /// 2. Duplicate kontrolü ([ReportService.hasUserReported]) — kullanıcı bu içeriği
+  ///    zaten raporlamışsa bottom sheet açılmadan kullanıcıya bilgi SnackBar'ı gösterilir.
   static Future<void> show(
     BuildContext context, {
-    required String postId,
+    String? postId,
+    String? targetId,
+    ReportTargetType targetType = ReportTargetType.post,
+    String? title,
     ReportService? reportService,
     void Function(Object error, StackTrace? stackTrace)? onError,
   }) async {
+    final resolvedTargetId = targetId ?? postId ?? '';
+    if (resolvedTargetId.isEmpty) return;
+
     // Ban kontrolü — banlı kullanıcı rapor gönderemez
     if (!await BannedActionGuard.check(context)) return;
+    if (!context.mounted) return;
+
+    // Duplicate kontrolü — kullanıcı bu içeriği daha önce raporlamış mı?
+    final currentUserId =
+        context.read<AuthProvider>().currentUser?.uid ?? '';
+    final service = reportService ?? ReportService();
+    if (currentUserId.isNotEmpty) {
+      try {
+        final alreadyReported = await service.hasUserReported(
+          targetType: targetType.value,
+          targetId: resolvedTargetId,
+          userId: currentUserId,
+        );
+        if (alreadyReported) {
+          if (!context.mounted) return;
+          final msg = targetType == ReportTargetType.material
+              ? 'Bu materyali daha önce raporladınız.'
+              : 'Bu içeriği daha önce raporladınız.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      } catch (_) {
+        // Kontrol sırasında ağ/firestore hatası olursa akışı engellemiyoruz,
+        // submit anında deterministic docId ile Firestore idempotent koruma sağlayacaktır.
+      }
+    }
 
     if (!context.mounted) return;
     return showModalBottomSheet(
@@ -51,7 +103,9 @@ class ReportBottomSheet extends StatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => ReportBottomSheet(
-        postId: postId,
+        targetId: resolvedTargetId,
+        targetType: targetType,
+        title: title,
         reportService: reportService,
         onError: onError,
       ),
@@ -103,8 +157,8 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
     try {
       final report = ReportModel(
         id: '',
-        targetType: ReportTargetType.post,
-        targetId: widget.postId,
+        targetType: widget.targetType,
+        targetId: widget.targetId,
         reportedBy: currentUserId,
         reason: selectedReason.value,
         createdAt: DateTime.now(),
@@ -145,6 +199,22 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
     }
   }
 
+  String _resolveTitle() {
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      return widget.title!;
+    }
+    switch (widget.targetType) {
+      case ReportTargetType.material:
+        return 'Materyali Raporla';
+      case ReportTargetType.event:
+        return 'Etkinliği Raporla';
+      case ReportTargetType.user:
+        return 'Kullanıcıyı Raporla';
+      case ReportTargetType.post:
+        return 'Gönderiyi Raporla';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -156,16 +226,16 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── Başlık ───────────────────────────────────────────
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
               AppSpacing.lg,
               AppSpacing.lg,
               AppSpacing.sm,
             ),
             child: Text(
-              'Gönderiyi Raporla',
-              style: TextStyle(
+              _resolveTitle(),
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
