@@ -68,4 +68,12 @@ class ProfileService extends FirestoreService {
       return UserProfile.fromMap(snapshot.data()!, id: snapshot.id);
     });
   }
+
+  /// Belirtilen [userId] kimliğine sahip kullanıcının banlı olup olmadığını kontrol eder.
+  ///
+  /// Kullanıcı bulunamazsa veya banlı değilse `false` döner.
+  Future<bool> isUserBanned(String userId) async {
+    final profile = await getUserProfile(userId);
+    return profile?.isBanned ?? false;
+  }
 }
