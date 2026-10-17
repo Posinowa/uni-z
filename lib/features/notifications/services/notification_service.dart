@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
@@ -65,7 +63,8 @@ class NotificationService {
       // 4. Foreground mesaj dinleyicisini kur
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     } catch (e) {
-      developer.log('initialize hata: $e', name: 'NotificationService');
+      // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
+      // nedeniyle loglanamıyor; production'da crashlytics ile izlenmeli.
     }
   }
 
@@ -76,7 +75,7 @@ class NotificationService {
     try {
       return await _fcm.getToken();
     } catch (e) {
-      developer.log('getToken hata: $e', name: 'NotificationService');
+      // Token alınamadı — cihaz offline veya FCM erişilemez durumda.
       return null;
     }
   }
