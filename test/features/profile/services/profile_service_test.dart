@@ -267,5 +267,28 @@ void main() {
         throwsA(isA<FirebaseException>()),
       );
     });
+
+    test('addFcmToken fcmTokens alanına arrayUnion ile token ekler', () async {
+      await profileService.createUserProfile(testProfile);
+
+      await profileService.addFcmToken('usr_123', 'new_fcm_token_999');
+
+      final data = fakeFirestore.dataStore['usr_123'];
+      expect(data, isNotNull);
+      expect(data?['fcmTokens'], isA<FieldValue>());
+    });
+
+    test('addFcmToken boş userId veya token ile çağrıldığında işlem yapmaz', () async {
+      await profileService.createUserProfile(testProfile);
+      final initialData = Map<String, dynamic>.from(fakeFirestore.dataStore['usr_123']!);
+
+      await profileService.addFcmToken('', 'token_xyz');
+      await profileService.addFcmToken('   ', 'token_xyz');
+      await profileService.addFcmToken('usr_123', '');
+      await profileService.addFcmToken('usr_123', '   ');
+
+      expect(fakeFirestore.dataStore['usr_123'], equals(initialData));
+    });
   });
 }
+

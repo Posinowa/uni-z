@@ -169,15 +169,21 @@ class AuthProvider extends ChangeNotifier {
           saveCallback: (userId, token) async {
             try {
               await ProfileService().addFcmToken(userId, token);
-            } catch (_) {}
+            } catch (e) {
+              // Firestore write hatası — rules veya bağlantı sorunu olabilir.
+            }
           },
         );
-      } catch (_) {}
+      } catch (e) {
+        // NotificationService erişilemedi — test ortamı veya Firebase init hatası.
+      }
     } else {
       // Çıkış yapıldı — token refresh listener'ı iptal et
       try {
         NotificationService.instance.disposeForUser();
-      } catch (_) {}
+      } catch (e) {
+        // Dispose hatası — listener zaten GC ile temizlenir.
+      }
     }
   }
 

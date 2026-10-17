@@ -64,8 +64,9 @@ class NotificationService {
       await getToken();
 
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    } catch (_) {
-      // Firebase başlatılmamışsa veya test ortamındaysa sessizce yakalanır
+    } catch (e) {
+      // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
+      // nedeniyle loglanamıyor; production'da crashlytics ile izlenmeli.
     }
   }
 
@@ -75,7 +76,8 @@ class NotificationService {
   Future<String?> getToken() async {
     try {
       return await _fcm.getToken();
-    } catch (_) {
+    } catch (e) {
+      // Token alınamadı — cihaz offline veya FCM erişilemez durumda.
       return null;
     }
   }
@@ -108,10 +110,12 @@ class NotificationService {
       _tokenRefreshSub = _fcm.onTokenRefresh.listen((newToken) async {
         try {
           await saveCallback(userId, newToken);
-        } catch (_) {}
+        } catch (e) {
+          // Token refresh kaydetme hatası — bağlantı sorunları olabilir.
+        }
       });
-    } catch (_) {
-      // Hata durumunda sessizce yakalanır
+    } catch (e) {
+      // Token kaydetme hatası — Firebase erişilemez veya test ortamı.
     }
   }
 
