@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
 ///
@@ -62,8 +63,8 @@ class NotificationService {
 
       // 4. Foreground mesaj dinleyicisini kur
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    } catch (_) {
-      // Firebase başlatılmamışsa veya test ortamındaysa sessizce yakalanır
+    } catch (e) {
+      debugPrint('NotificationService.initialize hata: $e');
     }
   }
 
@@ -73,7 +74,8 @@ class NotificationService {
   Future<String?> getToken() async {
     try {
       return await _fcm.getToken();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('NotificationService.getToken hata: $e');
       return null;
     }
   }
