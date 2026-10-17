@@ -1,5 +1,6 @@
+import 'dart:developer' as developer;
+
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
 ///
@@ -64,7 +65,7 @@ class NotificationService {
       // 4. Foreground mesaj dinleyicisini kur
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     } catch (e) {
-      debugPrint('NotificationService.initialize hata: $e');
+      developer.log('initialize hata: $e', name: 'NotificationService');
     }
   }
 
@@ -75,7 +76,7 @@ class NotificationService {
     try {
       return await _fcm.getToken();
     } catch (e) {
-      debugPrint('NotificationService.getToken hata: $e');
+      developer.log('getToken hata: $e', name: 'NotificationService');
       return null;
     }
   }
