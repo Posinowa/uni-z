@@ -4,7 +4,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/states/app_empty_state.dart';
 
 /// Ders detay ekranındaki "Materyaller" sekmesini temsil eden widget.
@@ -96,26 +95,14 @@ class _CourseMaterialsTabState extends State<CourseMaterialsTab> {
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.border),
             ),
-            child: Column(
-              children: [
-                AppEmptyState(
-                  title: 'Henüz materyal bulunmuyor',
-                  description:
-                      'Bu ders için ilk ders notunu, çıkmış soruyu veya özeti sen yükleyerek arkadaşlarına destek ol!',
-                  icon: Icons.folder_open_outlined,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // ── Materyal Yükle Butonu ──
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 240),
-                  child: PrimaryButton(
-                    text: 'Materyal Yükle',
-                    icon: Icons.upload_file_outlined,
-                    onPressed: widget.onUploadPressed,
-                  ),
-                ),
-              ],
+            child: AppEmptyState(
+              title: 'Henüz materyal bulunmuyor',
+              description:
+                  'Bu ders için ilk ders notunu, çıkmış soruyu veya özeti sen yükleyerek arkadaşlarına destek ol!',
+              icon: Icons.folder_open_outlined,
+              actionText: 'Materyal Yükle',
+              actionIcon: Icons.upload_file_outlined,
+              onActionPressed: widget.onUploadPressed,
             ),
           ),
           const SizedBox(height: AppSpacing.xl),

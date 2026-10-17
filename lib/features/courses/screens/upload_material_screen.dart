@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_dropdown_field.dart';
@@ -80,8 +81,13 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
     super.dispose();
   }
 
-  /// Form doğrulamasını yapar ve gönderme akışını tamamlar.
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
+    // Ban kontrolü — banlı kullanıcı materyal yükleyemez
+    if (!await BannedActionGuard.check(context)) {
+      return;
+    }
+    if (!mounted) return;
+
     // 1. Form alanları doğrulaması
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;

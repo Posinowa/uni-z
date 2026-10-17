@@ -71,6 +71,14 @@ class ProfileService extends FirestoreService {
     });
   }
 
+  /// Belirtilen [userId] kimliğine sahip kullanıcının banlı olup olmadığını kontrol eder.
+  ///
+  /// Kullanıcı bulunamazsa veya banlı değilse `false` döner.
+  Future<bool> isUserBanned(String userId) async {
+    final profile = await getUserProfile(userId);
+    return profile?.isBanned ?? false;
+  }
+
   /// FCM token'ı kullanıcı belgesindeki `fcmTokens` array'ine ekler.
   ///
   /// Firestore `arrayUnion` kullanır — aynı token zaten varsa tekrar eklenmez.

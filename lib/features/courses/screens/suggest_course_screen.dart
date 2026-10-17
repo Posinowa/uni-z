@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/services/banned_action_guard.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/inputs/app_text_field.dart';
@@ -14,7 +15,14 @@ import '../services/course_suggestion_service.dart';
 /// Form gönderildikten sonra ders, Firestore'a `status: pending`
 /// olarak kaydedilir. Admin onaylamadan listede görünmez.
 class SuggestCourseScreen extends StatefulWidget {
-  const SuggestCourseScreen({super.key});
+  final FirebaseAuth? authInstance;
+  final CourseSuggestionService? service;
+
+  const SuggestCourseScreen({
+    this.authInstance,
+    this.service,
+    super.key,
+  });
 
   /// Bu ekran için route adı.
   static const String routeName = '/suggest-course';
@@ -39,9 +47,15 @@ class _SuggestCourseScreenState extends State<SuggestCourseScreen> {
   final _departmentController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  final _service = CourseSuggestionService();
+  late final CourseSuggestionService _service;
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? CourseSuggestionService();
+  }
 
   @override
   void dispose() {
@@ -54,15 +68,21 @@ class _SuggestCourseScreenState extends State<SuggestCourseScreen> {
 
   /// Form doğrulamasını yapar ve Firestore'a kaydeder.
   Future<void> _onSubmit() async {
-    // Validasyon başarısız olursa erken çık.
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
     // Giriş yapmış kullanıcı zorunlu.
-    final user = FirebaseAuth.instance.currentUser;
+    final user = (widget.authInstance ?? FirebaseAuth.instance).currentUser;
     if (user == null) {
       _showErrorSnackBar('Ders önerisi göndermek için giriş yapmalısınız.');
       return;
     }
+
+    // Ban kontrolü — banlı kullanıcı ders ekleyemez
+    if (!await BannedActionGuard.check(context, userId: user.uid)) {
+      return;
+    }
+    if (!mounted) return;
+
+    // Validasyon başarısız olursa erken çık.
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isLoading = true);
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/auth/screens/banned_user_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
@@ -60,6 +61,15 @@ class AppRouter {
         return _buildRoute(
           settings,
           const HomeShellScreen(),
+        );
+
+      case AppRoutes.banned:
+        final banReason = settings.arguments is String
+            ? settings.arguments as String
+            : null;
+        return _buildRoute(
+          settings,
+          BannedUserScreen(banReason: banReason),
         );
 
       default:

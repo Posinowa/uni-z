@@ -112,6 +112,8 @@ void main() {
               const Scaffold(body: Text('Forgot Password Test')),
           AppRoutes.register: (_) =>
               const Scaffold(body: Text('Register Screen Test')),
+          AppRoutes.banned: (_) =>
+              const Scaffold(body: Text('Banned Screen Test')),
         },
         initialRoute: AppRoutes.login,
       ),
@@ -148,6 +150,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Home Screen Test'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Giriş başarılı ve banlı olan kullanıcıyı /banned ekranına yönlendirir',
+        (WidgetTester tester) async {
+      final fakeAuth = FakeAuthService();
+      final bannedProfile = testProfile.copyWith(isBanned: true);
+      final fakeProfile = FakeProfileService(returnProfile: bannedProfile);
+
+      await tester.pumpWidget(
+        createLoginTestWidget(
+          authService: fakeAuth,
+          profileService: fakeProfile,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Formu doldur
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'ahmet@uniz.app',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).last,
+        'password123',
+      );
+
+      // Giriş Yap butonuna bas
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Banned Screen Test'), findsOneWidget);
+      expect(find.text('Home Screen Test'), findsNothing);
     });
 
     testWidgets(
