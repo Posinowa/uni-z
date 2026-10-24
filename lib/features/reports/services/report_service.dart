@@ -50,12 +50,13 @@ class ReportService extends FirestoreService {
       );
     }
 
-    final reportToSave = report.createdAt == null
-        ? report.copyWith(createdAt: DateTime.now())
-        : report;
+    // createdAt alanı cihaz saatinden değil, sunucu zamanından alınır.
+    // Böylece cihaz saati yanlış olan kullanıcılar sıralamayı bozmaz.
+    final data = report.toMap();
+    data['createdAt'] = FieldValue.serverTimestamp();
 
     // Deterministic ID ile set — concurrent isteklerde idempotent.
-    await collection.doc(docId).set(reportToSave.toMap());
+    await collection.doc(docId).set(data);
   }
 
   /// Belirtilen kullanıcının ilgili içeriği daha önce raporlayıp
