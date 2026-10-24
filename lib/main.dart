@@ -1,12 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:provider/provider.dart';
 
+import 'app/app.dart';
 import 'core/routing/app_router.dart';
-import 'core/routing/app_routes.dart';
-import 'core/theme/app_theme.dart';
-import 'features/auth/providers/auth_provider.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'firebase_options.dart';
 
@@ -28,24 +25,9 @@ Future<void> main() async {
   // FCM bildirim altyapısını başlat
   await NotificationService.instance.initialize();
 
-  runApp(const UnizMobileApp());
+  runApp(
+    UnizApp(
+      onGenerateRoute: AppRouter.onGenerateRoute,
+    ),
+  );
 }
-
-class UnizMobileApp extends StatelessWidget {
-  const UnizMobileApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
-      child: MaterialApp(
-        title: "Uni'z",
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: AppRoutes.splash,
-        onGenerateRoute: AppRouter.onGenerateRoute,
-      ),
-    );
-  }
-}
-

@@ -34,12 +34,18 @@ class NotificationService {
   /// Token yenilendiğinde Firestore'u güncelleyen listener subscription.
   StreamSubscription<String>? _tokenRefreshSub;
 
+  /// Foreground mesajları dinleyicilere ileten broadcast stream controller.
+  final StreamController<RemoteMessage> _foregroundMessageController =
+      StreamController<RemoteMessage>.broadcast();
+
+  /// Foreground mesaj akışı — in-app UI (#67) bu stream'i dinler.
+  Stream<RemoteMessage> get foregroundMessageStream =>
+      _foregroundMessageController.stream;
+
   /// Firebase Messaging instance — lazy getter ile test ortamında erken crash önlenir.
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   /// Foreground'da mesaj alındığında tetiklenen callback.
-  ///
-  /// [main.dart] içinde set edilerek snackbar gösterimi sağlanır.
   void Function(RemoteMessage message)? onForegroundMessage;
 
   /// Bildirim servisini başlatır.
@@ -68,7 +74,7 @@ class NotificationService {
       await getToken();
 
       // 4. Foreground mesaj dinleyicisini kur
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      FirebaseMessaging.onMessage.listen(handleForegroundMessage);
     } catch (e) {
       // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
       // nedeniyle loglanamıyor; production'da crashlytics ile izlenmeli.
@@ -135,9 +141,12 @@ class NotificationService {
 
   /// Foreground'da gelen mesajları işler.
   ///
-  /// Eğer [onForegroundMessage] callback'i set edilmişse onu çağırır.
-  void _handleForegroundMessage(RemoteMessage message) {
-    // Callback set edildiyse çağır (snackbar gösterimi için)
+  /// Stream dinleyicilerine iletir ve opsiyonel callback'i çağırır.
+  /// Testlerden doğrudan çağrılabilir.
+  void handleForegroundMessage(RemoteMessage message) {
+    if (!_foregroundMessageController.isClosed) {
+      _foregroundMessageController.add(message);
+    }
     onForegroundMessage?.call(message);
   }
 }
