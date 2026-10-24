@@ -8,6 +8,9 @@ import '../../../shared/widgets/buttons/primary_button.dart';
 import '../../../shared/widgets/states/app_empty_state.dart';
 import '../models/course_material.dart';
 import '../services/course_material_service.dart';
+import '../../reports/models/report_target_type.dart';
+import '../../reports/services/report_service.dart';
+import '../../reports/widgets/report_bottom_sheet.dart';
 import 'material_card.dart';
 
 /// Ders detay ekranındaki "Materyaller" sekmesini temsil eden widget.
@@ -18,6 +21,11 @@ import 'material_card.dart';
 /// Veri yoksa kullanıcıya bilgilendirici bir empty state ve
 /// "Materyal Yükle" CTA butonu gösterilir.
 ///
+/// Onaylı bir materyal üzerindeki rapor butonu tıklandığında,
+/// [ReportBottomSheet] (targetType: material) açılarak Firestore'a
+/// rapor iletilir. Duplicate kontrolü ile aynı kullanıcının mükerrer
+/// raporlaması engellenir.
+///
 /// Pending / rejected materyaller Firestore query'si tarafından
 /// filtrelenir, UI'a hiç ulaşmaz.
 class CourseMaterialsTab extends StatefulWidget {
@@ -25,6 +33,7 @@ class CourseMaterialsTab extends StatefulWidget {
     super.key,
     required this.courseId,
     required this.onUploadPressed,
+    this.reportService,
   });
 
   /// Materyallerin dinleneceği dersin Firestore belge ID'si.
@@ -32,6 +41,9 @@ class CourseMaterialsTab extends StatefulWidget {
 
   /// Materyal yükle butonuna basıldığında tetiklenecek fonksiyon.
   final VoidCallback onUploadPressed;
+
+  /// Test edilebilirlik için enjekte edilebilir rapor servisi.
+  final ReportService? reportService;
 
   @override
   State<CourseMaterialsTab> createState() => _CourseMaterialsTabState();
@@ -193,12 +205,24 @@ class _CourseMaterialsTabState extends State<CourseMaterialsTab> {
             type: material.type.value,
             fileType: material.fileType,
             createdAt: material.createdAt,
-            onReportTap: () {
-              // TODO: Rapor akışı ayrı issue'da geliştirilecek
-            },
+            onReportTap: () => _handleReport(context, material),
           ),
         );
       }),
+    );
+  }
+
+  /// Materyali raporlamak için ortak [ReportBottomSheet]'i açar.
+  Future<void> _handleReport(
+    BuildContext context,
+    CourseMaterial material,
+  ) async {
+    await ReportBottomSheet.show(
+      context,
+      targetId: material.id,
+      targetType: ReportTargetType.material,
+      title: 'Materyali Raporla',
+      reportService: widget.reportService,
     );
   }
 
