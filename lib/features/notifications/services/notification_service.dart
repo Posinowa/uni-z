@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 /// Arka planda gelen bildirimleri yakalayan handler.
@@ -16,16 +18,21 @@ Future<void> _firebaseMessagingBackgroundHandler(
 ///
 /// Singleton pattern ile tek bir instance üzerinden çalışır.
 /// Uygulama başlatılırken [initialize] çağrılarak bildirim altyapısı kurulur.
+/// Kullanıcı giriş yaptıktan sonra [saveTokenForUser] çağrılarak token Firestore'a kaydedilir.
 ///
 /// Örnek kullanım:
 /// ```dart
 /// await NotificationService.instance.initialize();
+/// await NotificationService.instance.saveTokenForUser(userId);
 /// ```
 class NotificationService {
   NotificationService._();
 
   /// Singleton instance.
   static final NotificationService instance = NotificationService._();
+
+  /// Token yenilendiğinde Firestore'u güncelleyen listener subscription.
+  StreamSubscription<String>? _tokenRefreshSub;
 
   /// Firebase Messaging instance — lazy getter ile test ortamında erken crash önlenir.
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
@@ -78,6 +85,52 @@ class NotificationService {
       // Token alınamadı — cihaz offline veya FCM erişilemez durumda.
       return null;
     }
+  }
+
+
+  /// Kullanıcının FCM token'ını Firestore'a kaydeder ve token refresh listener'ı başlatır.
+  ///
+  /// [userId] geçerli bir Firebase Auth UID olmalıdır.
+  /// Token Firestore `users/{userId}.fcmTokens` array'ine [saveCallback] ile eklenir.
+  /// `arrayUnion` kullanıldığı için aynı token tekrar eklenmez.
+  ///
+  /// Ayrıca [FirebaseMessaging.instance.onTokenRefresh] dinlenerek
+  /// token yenilendiğinde Firestore otomatik güncellenir.
+  Future<void> saveTokenForUser(
+    String userId, {
+    required Future<void> Function(String userId, String token) saveCallback,
+  }) async {
+    if (userId.trim().isEmpty) return;
+
+    try {
+      // Mevcut token'ı kaydet
+      final token = await getToken();
+      if (token != null) {
+        await saveCallback(userId, token);
+      }
+
+      // Eski listener varsa iptal et
+      await _tokenRefreshSub?.cancel();
+
+      // Token yenilendiğinde otomatik güncelle
+      _tokenRefreshSub = _fcm.onTokenRefresh.listen((newToken) async {
+        try {
+          await saveCallback(userId, newToken);
+        } catch (e) {
+          // Token refresh kaydetme hatası — bağlantı sorunları olabilir.
+        }
+      });
+    } catch (e) {
+      // Token kaydetme hatası — Firebase erişilemez veya test ortamı.
+    }
+  }
+
+  /// Token refresh listener'ı iptal eder.
+  ///
+  /// Kullanıcı çıkış yaptığında çağrılır.
+  Future<void> disposeForUser() async {
+    await _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
   }
 
   /// Foreground'da gelen mesajları işler.
