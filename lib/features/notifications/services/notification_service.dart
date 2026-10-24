@@ -74,7 +74,7 @@ class NotificationService {
       await getToken();
 
       // 4. Foreground mesaj dinleyicisini kur
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      FirebaseMessaging.onMessage.listen(handleForegroundMessage);
     } catch (e) {
       // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
       // nedeniyle loglanamıyor; production'da crashlytics ile izlenmeli.
@@ -142,7 +142,8 @@ class NotificationService {
   /// Foreground'da gelen mesajları işler.
   ///
   /// Stream dinleyicilerine iletir ve opsiyonel callback'i çağırır.
-  void _handleForegroundMessage(RemoteMessage message) {
+  /// Testlerden doğrudan çağrılabilir.
+  void handleForegroundMessage(RemoteMessage message) {
     if (!_foregroundMessageController.isClosed) {
       _foregroundMessageController.add(message);
     }
