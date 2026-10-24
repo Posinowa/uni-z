@@ -11,6 +11,7 @@ Future<void> _firebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
   // Arka plan mesajı alındı — şu an için ek işlem yapılmıyor.
+  // İleride local notification gösterimi eklenebilir.
 }
 
 /// Firebase Cloud Messaging (FCM) bildirim servisi.
@@ -37,11 +38,11 @@ class NotificationService {
   final StreamController<RemoteMessage> _foregroundMessageController =
       StreamController<RemoteMessage>.broadcast();
 
-  /// Foreground mesaj akışı.
+  /// Foreground mesaj akışı — in-app UI (#67) bu stream'i dinler.
   Stream<RemoteMessage> get foregroundMessageStream =>
       _foregroundMessageController.stream;
 
-  /// FirebaseMessaging instance — lazy erişim ile test ortamında crash önlenir.
+  /// Firebase Messaging instance — lazy getter ile test ortamında erken crash önlenir.
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   /// Foreground'da mesaj alındığında tetiklenen callback.
@@ -56,6 +57,7 @@ class NotificationService {
   /// 4. Foreground mesaj dinleyicisini kurar.
   Future<void> initialize() async {
     try {
+      // 1. Bildirim izni iste
       await _fcm.requestPermission(
         alert: true,
         badge: true,
@@ -63,15 +65,19 @@ class NotificationService {
         provisional: false,
       );
 
+      // 2. Arka plan mesaj handler'ını tanımla
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
 
+      // 3. FCM token al
       await getToken();
 
-      FirebaseMessaging.onMessage.listen(handleForegroundMessage);
-    } catch (_) {
-      // Test ortamında veya Firebase henüz başlatılmamışken sessizce yakalanır.
+      // 4. Foreground mesaj dinleyicisini kur
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    } catch (e) {
+      // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
+      // nedeniyle loglanamıyor; production'da crashlytics ile izlenmeli.
     }
   }
 
@@ -81,15 +87,21 @@ class NotificationService {
   Future<String?> getToken() async {
     try {
       return await _fcm.getToken();
-    } catch (_) {
+    } catch (e) {
+      // Token alınamadı — cihaz offline veya FCM erişilemez durumda.
       return null;
     }
   }
+
 
   /// Kullanıcının FCM token'ını Firestore'a kaydeder ve token refresh listener'ı başlatır.
   ///
   /// [userId] geçerli bir Firebase Auth UID olmalıdır.
   /// Token Firestore `users/{userId}.fcmTokens` array'ine [saveCallback] ile eklenir.
+  /// `arrayUnion` kullanıldığı için aynı token tekrar eklenmez.
+  ///
+  /// Ayrıca [FirebaseMessaging.instance.onTokenRefresh] dinlenerek
+  /// token yenilendiğinde Firestore otomatik güncellenir.
   Future<void> saveTokenForUser(
     String userId, {
     required Future<void> Function(String userId, String token) saveCallback,
@@ -110,10 +122,12 @@ class NotificationService {
       _tokenRefreshSub = _fcm.onTokenRefresh.listen((newToken) async {
         try {
           await saveCallback(userId, newToken);
-        } catch (_) {}
+        } catch (e) {
+          // Token refresh kaydetme hatası — bağlantı sorunları olabilir.
+        }
       });
-    } catch (_) {
-      // Hata durumunda sessizce yakalanır
+    } catch (e) {
+      // Token kaydetme hatası — Firebase erişilemez veya test ortamı.
     }
   }
 
@@ -125,8 +139,10 @@ class NotificationService {
     _tokenRefreshSub = null;
   }
 
-  /// Foreground'da gelen mesajları işler ve dinleyicilere dağıtır.
-  void handleForegroundMessage(RemoteMessage message) {
+  /// Foreground'da gelen mesajları işler.
+  ///
+  /// Stream dinleyicilerine iletir ve opsiyonel callback'i çağırır.
+  void _handleForegroundMessage(RemoteMessage message) {
     if (!_foregroundMessageController.isClosed) {
       _foregroundMessageController.add(message);
     }
