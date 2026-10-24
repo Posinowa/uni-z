@@ -7,6 +7,7 @@ import 'core/routing/app_router.dart';
 import 'core/routing/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/notifications/services/notification_service.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -23,6 +24,9 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // FCM bildirim altyapısını başlat
+  await NotificationService.instance.initialize();
 
   runApp(const UnizMobileApp());
 }

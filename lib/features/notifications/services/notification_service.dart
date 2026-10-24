@@ -11,6 +11,7 @@ Future<void> _firebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
   // Arka plan mesajı alındı — şu an için ek işlem yapılmıyor.
+  // İleride local notification gösterimi eklenebilir.
 }
 
 /// Firebase Cloud Messaging (FCM) bildirim servisi.
@@ -33,7 +34,7 @@ class NotificationService {
   /// Token yenilendiğinde Firestore'u güncelleyen listener subscription.
   StreamSubscription<String>? _tokenRefreshSub;
 
-  /// FirebaseMessaging instance — lazy erişim ile test ortamında crash önlenir.
+  /// Firebase Messaging instance — lazy getter ile test ortamında erken crash önlenir.
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   /// Foreground'da mesaj alındığında tetiklenen callback.
@@ -50,6 +51,7 @@ class NotificationService {
   /// 4. Foreground mesaj dinleyicisini kurar.
   Future<void> initialize() async {
     try {
+      // 1. Bildirim izni iste
       await _fcm.requestPermission(
         alert: true,
         badge: true,
@@ -57,12 +59,15 @@ class NotificationService {
         provisional: false,
       );
 
+      // 2. Arka plan mesaj handler'ını tanımla
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
 
+      // 3. FCM token al
       await getToken();
 
+      // 4. Foreground mesaj dinleyicisini kur
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     } catch (e) {
       // Firebase başlatılmamış veya test ortamı — hata CI log yasağı
@@ -81,6 +86,7 @@ class NotificationService {
       return null;
     }
   }
+
 
   /// Kullanıcının FCM token'ını Firestore'a kaydeder ve token refresh listener'ı başlatır.
   ///
@@ -128,7 +134,10 @@ class NotificationService {
   }
 
   /// Foreground'da gelen mesajları işler.
+  ///
+  /// Eğer [onForegroundMessage] callback'i set edilmişse onu çağırır.
   void _handleForegroundMessage(RemoteMessage message) {
+    // Callback set edildiyse çağır (snackbar gösterimi için)
     onForegroundMessage?.call(message);
   }
 }
