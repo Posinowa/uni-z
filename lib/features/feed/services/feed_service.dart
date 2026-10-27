@@ -45,12 +45,17 @@ class FeedService extends FirestoreService {
   Stream<List<FeedPost>> watchPublishedPosts() {
     return collection
         .where('status', isEqualTo: PostStatus.published.value)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final posts = snapshot.docs
           .map((doc) => FeedPost.fromMap(doc.data(), id: doc.id))
           .toList();
+      posts.sort((a, b) {
+        final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+      return posts;
     });
   }
 
