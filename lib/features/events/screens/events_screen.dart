@@ -67,6 +67,7 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'events_fab',
         onPressed: () async {
           if (!await BannedActionGuard.check(context)) return;
           if (!context.mounted) return;
