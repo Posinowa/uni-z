@@ -80,7 +80,11 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
 
       if (user == null) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
         return;
       }
 
@@ -90,15 +94,24 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
 
       if (profile == null) {
-        Navigator.pushReplacementNamed(context, AppRoutes.profileCompletion);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.profileCompletion,
+          (route) => false,
+        );
       } else if (profile.isBanned) {
-        Navigator.pushReplacementNamed(
+        Navigator.pushNamedAndRemoveUntil(
           context,
           AppRoutes.banned,
+          (route) => false,
           arguments: profile.banReason,
         );
       } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.home,
+          (route) => false,
+        );
       }
     } catch (_) {
       if (!mounted) return;
@@ -112,7 +125,11 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       if (currentUser == null) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
         return;
       }
 
@@ -145,7 +162,11 @@ class _SplashScreenState extends State<SplashScreen> {
       // Hata olsa bile login ekranına geçiş yap
     }
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   @override
