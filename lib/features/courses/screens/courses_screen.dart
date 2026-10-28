@@ -154,6 +154,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         centerTitle: false,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'courses_fab',
         onPressed: _onAddCoursePressed,
         icon: const Icon(Icons.add),
         label: const Text('Ders Ekle'),
