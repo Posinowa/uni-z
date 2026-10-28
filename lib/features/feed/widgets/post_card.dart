@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -201,57 +203,85 @@ class _AuthorHeader extends StatelessWidget {
 }
 
 /// Görsel yoksa hiç alan kaplamaz, varsa yuvarlatılmış köşelerle gösterir.
+///
+/// [imageUrl] bir local dosya yolu ise [Image.file], aksi hâlde
+/// [Image.network] kullanılır. Bu sayede [MockStorageService]'in
+/// döndürdüğü local path'ler de doğru render edilir.
 class _PostImage extends StatelessWidget {
   final String imageUrl;
 
   const _PostImage({required this.imageUrl});
 
+  /// URL'in local dosya yolu olup olmadığını kontrol eder.
+  bool get _isLocalPath =>
+      imageUrl.startsWith('/') || imageUrl.startsWith('file://');
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: AppRadius.borderRadiusSm,
-      child: Image.network(
-        imageUrl,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: AppRadius.borderRadiusSm,
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primaryIndigo,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: AppRadius.borderRadiusSm,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.broken_image_outlined,
-                color: AppColors.textSecondary,
-                size: 40,
-              ),
-            ),
-          );
-        },
+      child: _isLocalPath ? _buildFileImage() : _buildNetworkImage(),
+    );
+  }
+
+  Widget _buildFileImage() {
+    return Image.file(
+      File(imageUrl),
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
+    );
+  }
+
+  Widget _buildNetworkImage() {
+    return Image.network(
+      imageUrl,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return _buildLoadingPlaceholder();
+      },
+      errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
+    );
+  }
+
+  Widget _buildLoadingPlaceholder() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: AppRadius.borderRadiusSm,
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.primaryIndigo,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorPlaceholder() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: AppRadius.borderRadiusSm,
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: AppColors.textSecondary,
+          size: 40,
+        ),
       ),
     );
   }
 }
+
 
 /// Beğeni butonu (PostLikeButton) ve rapor butonunu gösterir.
 ///
