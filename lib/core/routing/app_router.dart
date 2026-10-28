@@ -27,6 +27,7 @@ class AppRouter {
   /// Route ayarlarına göre doğru ekranı döndürür.
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/':
       case AppRoutes.splash:
         return _buildRoute(
           settings,
