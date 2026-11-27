@@ -9,10 +9,9 @@ import '../../../shared/widgets/states/states.dart';
 import '../../feed/screens/create_text_post_screen.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
-import '../widgets/logout_button.dart';
 import '../widgets/profile_form_section.dart';
 import '../widgets/profile_info_row.dart';
-import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
 
 /// Kullanıcı profil ekranı.
 ///
@@ -80,9 +79,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           if (_profile != null)
             IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Profili Düzenle',
-              onPressed: _navigateToEditProfile,
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Ayarlar',
+              onPressed: _navigateToSettings,
             ),
         ],
       ),
@@ -92,14 +91,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Profil düzenleme ekranına gider.
+  /// Ayarlar ekranına gider.
   ///
-  /// Geri dönüşte güncelleme yapılmışsa profil yeniden yüklenir.
-  Future<void> _navigateToEditProfile() async {
+  /// Geri dönüşte profil güncellenmişse profil yeniden yüklenir.
+  Future<void> _navigateToSettings() async {
     final updated = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => EditProfileScreen(profile: _profile!),
+        builder: (_) => SettingsScreen(profile: _profile!),
       ),
     );
     if (updated == true) {
@@ -159,10 +158,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // ── Paylaşımlarım (User Posts Placeholder) ──
             _buildUserPostsSection(),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // ── Çıkış ──
-            const LogoutButton(),
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),

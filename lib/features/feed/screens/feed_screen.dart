@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../shared/widgets/states/states.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../profile/widgets/logout_button.dart';
 import 'create_text_post_screen.dart';
 import '../models/feed_post.dart';
 import '../services/feed_service.dart';
@@ -56,12 +55,6 @@ class _FeedScreenState extends State<FeedScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Uni'z Akış"),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: LogoutButton(),
-          ),
-        ],
       ),
       body: StreamBuilder<List<FeedPost>>(
         stream: _postsStream,
