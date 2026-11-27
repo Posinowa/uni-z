@@ -67,10 +67,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // Mevcut profil bilgileriyle controller'ları başlat
     _fullNameController = TextEditingController(
       text: widget.profile.fullName,
-    );
+    )..addListener(_onFieldChanged);
     _phoneController = TextEditingController(
       text: widget.profile.phone ?? '',
-    );
+    )..addListener(_onFieldChanged);
     _selectedClassYear = widget.profile.classYear;
     _selectedGraduationYear = widget.profile.expectedGraduationYear;
 
@@ -94,8 +94,54 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _graduationYears = years;
   }
 
+  void _onFieldChanged() {
+    setState(() {});
+  }
+
+  /// Formda başlangıç değerlerine göre değişiklik yapılıp yapılmadığını döner.
+  bool get _hasChanges {
+    final initialName = widget.profile.fullName.trim();
+    final initialPhone = (widget.profile.phone ?? '').trim();
+
+    return _fullNameController.text.trim() != initialName ||
+        _phoneController.text.trim() != initialPhone ||
+        _selectedClassYear != widget.profile.classYear ||
+        _selectedGraduationYear != widget.profile.expectedGraduationYear;
+  }
+
+  Future<void> _confirmDiscardChanges() async {
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Kaydedilmemiş Değişiklikler'),
+        content: const Text(
+          'Yaptığınız değişiklikler kaydedilmedi. Çıkmak istediğinize emin misiniz?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'Çık',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDiscard == true && mounted) {
+      Navigator.pop(context, false);
+    }
+  }
+
   @override
   void dispose() {
+    _fullNameController.removeListener(_onFieldChanged);
+    _phoneController.removeListener(_onFieldChanged);
     _fullNameController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -133,6 +179,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await _profileService.updateUserProfile(updatedProfile);
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil güncellendi.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
       Navigator.pop(context, true); // true: güncelleme yapıldı sinyali
     } catch (_) {
       if (!mounted) return;
@@ -145,13 +197,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profili Düzenle'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
+    return PopScope(
+      canPop: !_hasChanges || _isLoading,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmDiscardChanges();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Profili Düzenle'),
+          centerTitle: true,
+        ),
+        body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: ConstrainedBox(
@@ -283,7 +341,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   // ── Kaydet Butonu ──
                   PrimaryButton(
                     text: 'Kaydet',
-                    onPressed: _isLoading ? null : _onSavePressed,
+                    onPressed: (!_hasChanges || _isLoading)
+                        ? null
+                        : _onSavePressed,
                     isLoading: _isLoading,
                   ),
                   const SizedBox(height: AppSpacing.xxl),
@@ -293,6 +353,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -161,12 +161,93 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Değişiklik yap
+      final nameField = find.widgetWithText(TextFormField, 'Ahmet Yılmaz');
+      await tester.enterText(nameField, 'Mehmet Yılmaz');
+      await tester.pumpAndSettle();
+
       // Kaydet butonuna bas
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
       expect(
         find.text('Profil güncellenemedi. Lütfen tekrar deneyin.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'Değişiklik yapılmadığında Kaydet butonu pasiftir, değişiklikte aktifleşir',
+        (WidgetTester tester) async {
+      final fakeService = FakeProfileService();
+
+      await tester.pumpWidget(
+        createTestWidget(
+          profile: sampleProfile,
+          profileService: fakeService,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialButton =
+          tester.widget<PrimaryButton>(find.byType(PrimaryButton));
+      expect(initialButton.onPressed, isNull);
+
+      // İsim alanını değiştir
+      final nameField = find.widgetWithText(TextFormField, 'Ahmet Yılmaz');
+      await tester.enterText(nameField, 'Ahmet Demir');
+      await tester.pumpAndSettle();
+
+      final updatedButton =
+          tester.widget<PrimaryButton>(find.byType(PrimaryButton));
+      expect(updatedButton.onPressed, isNotNull);
+    });
+
+    testWidgets(
+        'Kaydedilmemiş değişikliklerle geri çıkarken uyarı diyaloğu gösterilir',
+        (WidgetTester tester) async {
+      final fakeService = FakeProfileService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(
+                        profile: sampleProfile,
+                        profileService: fakeService,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Aç'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Aç'));
+      await tester.pumpAndSettle();
+
+      // Değişiklik yap
+      final nameField = find.widgetWithText(TextFormField, 'Ahmet Yılmaz');
+      await tester.enterText(nameField, 'Yeni İsim');
+      await tester.pumpAndSettle();
+
+      // Geri bas
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kaydedilmemiş Değişiklikler'), findsOneWidget);
+      expect(
+        find.text(
+          'Yaptığınız değişiklikler kaydedilmedi. Çıkmak istediğinize emin misiniz?',
+        ),
         findsOneWidget,
       );
     });
